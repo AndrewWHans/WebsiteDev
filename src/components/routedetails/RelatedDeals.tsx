@@ -12,10 +12,11 @@ import 'swiper/css/navigation';
 
 interface RelatedDealsProps {
   city?: string;
+  routeId?: string;
   user?: any;
 }
 
-export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
+export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, routeId, user }) => {
   const [relatedDeals, setRelatedDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -29,7 +30,7 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
   const pageSize = 5;
 
   useEffect(() => {
-    if (!city) {
+    if (!city && !routeId) {
       setRelatedDeals([]);
       setHasMoreDeals(false);
       setTotalDeals(0);
@@ -43,11 +44,16 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
     // Get total count of deals for this city
     const getTotalCount = async () => {
       try {
-        const { count, error } = await supabase
+        let query = supabase
           .from('deals')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'active')
-          .eq('city', city);
+          .eq('status', 'active');
+          
+        if (city) {
+          query = query.eq('city', city);
+        }
+        
+        const { count, error } = await query;
           
         if (error) throw error;
         setTotalDeals(count || 0);
@@ -58,10 +64,10 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
     };
     
     getTotalCount();
-  }, [city]);
+  }, [city, routeId]);
 
   const loadDeals = async (pageToLoad: number) => {
-    if (!city) return;
+    if (!city && !routeId) return;
     
     if (pageToLoad === 0) {
       setLoading(true);
@@ -78,14 +84,61 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
         setIsLooping(false);
       }
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('deals')
         .select('*')
         .eq('status', 'active')
-        .eq('city', city)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1)
-        .limit(pageSize);
+        .order('created_at', { ascending: false });
+      
+      // If we have a routeId, prioritize tagged deals for this route
+      if (routeId) {
+        // First try to get deals tagged to this route
+        const { data: taggedDeals, error: taggedError } = await supabase
+          .from('deal_route_tags')
+          .select('deal_id')
+          .eq('route_id', routeId);
+        
+        if (!taggedError && taggedDeals && taggedDeals.length > 0) {
+          // Get the tagged deals first
+          const taggedDealIds = taggedDeals.map(tag => tag.deal_id);
+          
+          const { data: priorityDeals, error: priorityError } = await supabase
+            .from('deals')
+            .select('*')
+            .eq('status', 'active')
+            .in('id', taggedDealIds)
+            .order('created_at', { ascending: false })
+            .limit(pageSize);
+          
+          if (!priorityError && priorityDeals && priorityDeals.length > 0) {
+            // If we have tagged deals, use them
+            if (pageToLoad === 0) {
+              setRelatedDeals(priorityDeals);
+              setHasMoreDeals(priorityDeals.length === pageSize);
+            } else {
+              setRelatedDeals(prev => [...prev, ...priorityDeals]);
+              setHasMoreDeals(priorityDeals.length === pageSize);
+            }
+            
+            setLoading(false);
+            setLoadingMore(false);
+            return;
+          }
+        }
+        
+        // If no tagged deals or error, fall back to city-based filtering
+        if (city) {
+          query = query.eq('city', city);
+        }
+      } else if (city) {
+        // If no routeId but we have city, filter by city
+        query = query.eq('city', city);
+      }
+      
+      // Apply pagination
+      query = query.range(offset, offset + pageSize - 1).limit(pageSize);
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -205,9 +258,9 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, user }) => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.4 }}
-          className="text-sm sm:text-base font-bold text-white flex items-center"
+          className="text-sm sm:text-base font-bold text-white flex items-center gap-2"
         >
-          <span className="mr-2">Related Deals</span>
+          <span>Related Deals</span>
           <span className="bg-gold/80 text-black text-[8px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded-full">Exclusive</span>
         </motion.h3>
         

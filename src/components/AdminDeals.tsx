@@ -12,7 +12,9 @@ import {
   ShoppingBag,
   Calendar,
   MapPin,
-  Image
+  Image,
+  Link,
+  Bus
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -32,6 +34,7 @@ type Deal = {
   location_address?: string;
   deal_date?: string;
   city?: string;
+  tagged_routes?: number;
 };
 
 type DealFormData = {
@@ -54,6 +57,12 @@ export const AdminDeals = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [availableRoutes, setAvailableRoutes] = useState<any[]>([]);
+  const [taggedRoutes, setTaggedRoutes] = useState<string[]>([]);
+  const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const [savingTags, setSavingTags] = useState(false);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<DealFormData>();
   
@@ -62,6 +71,13 @@ export const AdminDeals = () => {
   useEffect(() => {
     loadDeals();
   }, []);
+  
+  // Load tagged routes count for each deal
+  useEffect(() => {
+    if (deals.length > 0) {
+      loadTaggedRoutesCount();
+    }
+  }, [deals]);
 
   useEffect(() => {
     if (editingDeal) {
@@ -108,6 +124,151 @@ export const AdminDeals = () => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const loadTaggedRoutesCount = async () => {
+    try {
+      // Get counts of tagged routes for each deal
+      const dealIds = deals.map(deal => deal.id);
+      
+      const { data, error } = await supabase
+        .from('deal_route_tags')
+        .select('deal_id, count')
+        .in('deal_id', dealIds)
+        .group('deal_id');
+      
+      if (error) throw error;
+      
+      // Create a map of deal_id to count
+      const countMap = (data || []).reduce((acc, item) => {
+        acc[item.deal_id] = parseInt(item.count);
+        return acc;
+      }, {});
+      
+      // Update deals with tagged routes count
+      setDeals(deals.map(deal => ({
+        ...deal,
+        tagged_routes: countMap[deal.id] || 0
+      })));
+    } catch (err) {
+      console.error('Error loading tagged routes count:', err);
+    }
+  };
+  
+  const loadRoutesForDeal = async (dealId: string) => {
+    setLoadingRoutes(true);
+    try {
+      // Get all active routes
+      const { data: routes, error: routesError } = await supabase
+        .from('routes')
+        .select(`
+          id,
+          date,
+          city,
+          pickup:locations!routes_pickup_location_fkey (name),
+          dropoff:locations!routes_dropoff_location_fkey (name)
+        `)
+        .eq('status', 'active')
+        .order('date', { ascending: true });
+      
+      if (routesError) throw routesError;
+      
+      // Get already tagged routes for this deal
+      const { data: tags, error: tagsError } = await supabase
+        .from('deal_route_tags')
+        .select('route_id')
+        .eq('deal_id', dealId);
+      
+      if (tagsError) throw tagsError;
+      
+      // Set available routes
+      setAvailableRoutes(routes || []);
+      
+      // Set tagged routes
+      setTaggedRoutes((tags || []).map(tag => tag.route_id));
+    } catch (err) {
+      console.error('Error loading routes for deal:', err);
+      setError('Failed to load routes');
+    } finally {
+      setLoadingRoutes(false);
+    }
+  };
+  
+  const handleToggleRouteTag = (routeId: string) => {
+    setTaggedRoutes(prev => {
+      if (prev.includes(routeId)) {
+        return prev.filter(id => id !== routeId);
+      } else {
+        return [...prev, routeId];
+      }
+    });
+  };
+  
+  const handleSaveTags = async () => {
+    if (!selectedDeal) return;
+    
+    setSavingTags(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      // Get current tags
+      const { data: currentTags, error: currentTagsError } = await supabase
+        .from('deal_route_tags')
+        .select('route_id')
+        .eq('deal_id', selectedDeal.id);
+      
+      if (currentTagsError) throw currentTagsError;
+      
+      const currentTaggedRouteIds = (currentTags || []).map(tag => tag.route_id);
+      
+      // Routes to add (in taggedRoutes but not in currentTaggedRouteIds)
+      const routesToAdd = taggedRoutes.filter(id => !currentTaggedRouteIds.includes(id));
+      
+      // Routes to remove (in currentTaggedRouteIds but not in taggedRoutes)
+      const routesToRemove = currentTaggedRouteIds.filter(id => !taggedRoutes.includes(id));
+      
+      // Add new tags
+      if (routesToAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from('deal_route_tags')
+          .insert(routesToAdd.map(routeId => ({
+            deal_id: selectedDeal.id,
+            route_id: routeId,
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          })));
+        
+        if (addError) throw addError;
+      }
+      
+      // Remove tags
+      if (routesToRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from('deal_route_tags')
+          .delete()
+          .eq('deal_id', selectedDeal.id)
+          .in('route_id', routesToRemove);
+        
+        if (removeError) throw removeError;
+      }
+      
+      setSuccess('Route tags updated successfully');
+      setShowTagModal(false);
+      
+      // Refresh deals to update tagged_routes count
+      loadDeals();
+    } catch (err: any) {
+      console.error('Error saving tags:', err);
+      setError(err.message || 'Failed to save tags');
+    } finally {
+      setSavingTags(false);
+    }
+  };
+  
+  const openTagModal = (deal: Deal) => {
+    setSelectedDeal(deal);
+    loadRoutesForDeal(deal.id);
+    setShowTagModal(true);
   };
 
   const onSubmit = async (data: DealFormData) => {
@@ -309,19 +470,22 @@ export const AdminDeals = () => {
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {deal.location_name ? (
-                            <div>
-                              <div className="font-medium">{deal.location_name}</div>
-                              <div className="text-xs">{deal.location_address}</div>
-                              {deal.deal_date && (
-                                <div className="text-xs mt-1">
-                                  {formatDate(deal.deal_date)}
-                                </div>
-                              )}
+                          <div>
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 text-gray-400 mr-1" />
+                              <span>{deal.location_name}</span>
                             </div>
-                          ) : (
-                            <span className="text-gray-400">Not specified</span>
-                          )}
+                            {deal.deal_date && (
+                              <div className="flex items-center mt-1">
+                                <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+                                <span>{formatDate(deal.deal_date)}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center mt-1">
+                              <Link className="w-4 h-4 text-gray-400 mr-1" />
+                              <span>{deal.tagged_routes || 0} tagged routes</span>
+                            </div>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {deal.city || 'Not specified'}
@@ -351,6 +515,12 @@ export const AdminDeals = () => {
                           </span>
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                           <button
+                             onClick={() => openTagModal(deal)}
+                             className="text-indigo-600 hover:text-indigo-900 mr-4"
+                           >
+                             <Link className="w-4 h-4" />
+                           </button>
                           <button
                             onClick={() => handleToggleStatus(deal.id, deal.status)}
                             className={`text-${deal.status === 'active' ? 'yellow' : 'green'}-600 hover:text-${deal.status === 'active' ? 'yellow' : 'green'}-900 mr-4`}
@@ -567,51 +737,4 @@ export const AdminDeals = () => {
                     </div>
                     <input
                       type="text"
-                      {...register('image_url')}
-                      className="block w-full pl-10 sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter a URL for the deal image. Recommended size: 800x600px.
-                  </p>
-                  
-                  {/* Image Preview */}
-                  {imagePreview && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-gray-700 mb-1">Image Preview:</p>
-                      <div className="relative w-full h-40 bg-gray-100 rounded-md overflow-hidden">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover"
-                          onError={() => setImagePreview(null)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  {editingDeal ? 'Update Deal' : 'Create Deal'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+                      {...register('
