@@ -129,7 +129,7 @@ export const AdminDeals = () => {
       
       const { data, error } = await supabase
         .from('deal_route_tags')
-        .select('deal_id, count')
+        .select('deal_id, count(*)', { count: 'exact' })
         .in('deal_id', dealIds)
         .group('deal_id');
       
