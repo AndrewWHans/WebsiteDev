@@ -72,7 +72,6 @@ export const AdminDeals = () => {
     loadDeals();
   }, []);
   
-  // Load tagged routes count for each deal
   useEffect(() => {
     if (deals.length > 0) {
       loadTaggedRoutesCount();
@@ -90,7 +89,6 @@ export const AdminDeals = () => {
       setValue('city', editingDeal.city || 'Miami');
       
       if (editingDeal.deal_date) {
-        // Create a date object with a time component to avoid timezone issues
         const dateWithTime = new Date(editingDeal.deal_date + 'T12:00:00');
         setSelectedDate(dateWithTime);
       }
@@ -100,7 +98,6 @@ export const AdminDeals = () => {
   }, [editingDeal, setValue]);
 
   useEffect(() => {
-    // Update image preview when URL changes
     if (watchImageUrl && watchImageUrl.trim() !== '') {
       setImagePreview(watchImageUrl);
     } else {
@@ -128,7 +125,6 @@ export const AdminDeals = () => {
   
   const loadTaggedRoutesCount = async () => {
     try {
-      // Get counts of tagged routes for each deal
       const dealIds = deals.map(deal => deal.id);
       
       const { data, error } = await supabase
@@ -139,13 +135,11 @@ export const AdminDeals = () => {
       
       if (error) throw error;
       
-      // Create a map of deal_id to count
       const countMap = (data || []).reduce((acc, item) => {
         acc[item.deal_id] = parseInt(item.count);
         return acc;
       }, {});
       
-      // Update deals with tagged routes count
       setDeals(deals.map(deal => ({
         ...deal,
         tagged_routes: countMap[deal.id] || 0
@@ -158,7 +152,6 @@ export const AdminDeals = () => {
   const loadRoutesForDeal = async (dealId: string) => {
     setLoadingRoutes(true);
     try {
-      // Get all active routes
       const { data: routes, error: routesError } = await supabase
         .from('routes')
         .select(`
@@ -173,7 +166,6 @@ export const AdminDeals = () => {
       
       if (routesError) throw routesError;
       
-      // Get already tagged routes for this deal
       const { data: tags, error: tagsError } = await supabase
         .from('deal_route_tags')
         .select('route_id')
@@ -181,10 +173,7 @@ export const AdminDeals = () => {
       
       if (tagsError) throw tagsError;
       
-      // Set available routes
       setAvailableRoutes(routes || []);
-      
-      // Set tagged routes
       setTaggedRoutes((tags || []).map(tag => tag.route_id));
     } catch (err) {
       console.error('Error loading routes for deal:', err);
@@ -212,6 +201,9 @@ export const AdminDeals = () => {
     setSuccess(null);
     
     try {
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
       // Get current tags
       const { data: currentTags, error: currentTagsError } = await supabase
         .from('deal_route_tags')
@@ -235,7 +227,7 @@ export const AdminDeals = () => {
           .insert(routesToAdd.map(routeId => ({
             deal_id: selectedDeal.id,
             route_id: routeId,
-            created_by: (await supabase.auth.getUser()).data.user?.id
+            created_by: currentUser?.id
           })));
         
         if (addError) throw addError;
@@ -275,7 +267,6 @@ export const AdminDeals = () => {
     try {
       setError(null);
       
-      // Format date and time
       const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
       
       const dealData = {
@@ -343,7 +334,6 @@ export const AdminDeals = () => {
 
       if (error) throw error;
       
-      // Update local state
       setDeals(deals.map(deal => 
         deal.id === id ? { ...deal, status: newStatus } : deal
       ));
@@ -400,7 +390,6 @@ export const AdminDeals = () => {
         </div>
       </div>
 
-      {/* Success/Error Messages */}
       {error && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
           <p className="text-sm text-red-600">{error}</p>
@@ -412,7 +401,6 @@ export const AdminDeals = () => {
         </div>
       )}
 
-      {/* Deals Table */}
       <div className="mt-8 flex flex-col">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -553,7 +541,6 @@ export const AdminDeals = () => {
         </div>
       </div>
 
-      {/* Deal Form Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full">
@@ -568,7 +555,6 @@ export const AdminDeals = () => {
             
             <form onSubmit={handleSubmit(onSubmit)} className="p-6">
               <div className="grid grid-cols-1 gap-6">
-                {/* Deal Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Deal Title
@@ -584,7 +570,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
 
-                {/* Deal Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Description
@@ -600,7 +585,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
 
-                {/* Price */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Price
@@ -629,7 +613,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
 
-                {/* Location Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Location Name
@@ -650,7 +633,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
 
-                {/* Location Address */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Location Address
@@ -671,7 +653,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
 
-                {/* City Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     City
@@ -697,7 +678,6 @@ export const AdminDeals = () => {
                   )}
                 </div>
                 
-                {/* Date and Time */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Date
@@ -713,7 +693,6 @@ export const AdminDeals = () => {
                       value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
                       onChange={(e) => {
                         if (e.target.value) {
-                          // Create a date object with a time component to avoid timezone issues
                           const newDate = new Date(e.target.value + 'T12:00:00');
                           setSelectedDate(newDate);
                           setValue('deal_date', e.target.value);
@@ -726,7 +705,6 @@ export const AdminDeals = () => {
                   </div>
                 </div>
 
-                {/* Image URL */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Image URL
@@ -737,4 +715,129 @@ export const AdminDeals = () => {
                     </div>
                     <input
                       type="text"
-                      {...register('
+                      {...register('image_url')}
+                      className="block w-full pl-10 sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-32 w-32 object-cover rounded-md"
+                        onError={() => setImagePreview(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  {editingDeal ? 'Update Deal' : 'Create Deal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tag Routes Modal */}
+      {showTagModal && selectedDeal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-lg font-medium">
+                Tag Routes for {selectedDeal.title}
+              </h3>
+              <button onClick={() => setShowTagModal(false)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-200px)]">
+              {loadingRoutes ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                </div>
+              ) : availableRoutes.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Bus className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                  <p>No active routes available</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {availableRoutes.map((route) => (
+                    <div
+                      key={route.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div>
+                        <div className="font-medium">
+                          {route.pickup.name} → {route.dropoff.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          <div className="flex items-center mt-1">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {new Date(route.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {route.city}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <input
+                          type="checkbox"
+                          checked={taggedRoutes.includes(route.id)}
+                          onChange={() => handleToggleRouteTag(route.id)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end items-center gap-3 p-6 border-t bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowTagModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTags}
+                disabled={savingTags}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                {savingTags ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
