@@ -60,7 +60,7 @@ export const RoutesPage = () => {
   const loadVisibleCities = async () => {
     try {
       // Get the list of all cities
-      const allCities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville'];
+      const allCities = ['Tampa', 'St. Petersburg', 'Oaxaca', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore'];
       
       // Get hidden cities from system settings
       const { data, error } = await supabase
@@ -91,7 +91,7 @@ export const RoutesPage = () => {
     } catch (err) {
       console.error('Error loading visible cities:', err);
       // Default to all cities if there's an error
-      setVisibleCities(['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville']);
+      setVisibleCities(['Tampa', 'St. Petersburg', 'Oaxaca', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore']);
     }
   };
 
