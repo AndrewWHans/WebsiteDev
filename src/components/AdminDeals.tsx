@@ -162,6 +162,7 @@ export const AdminDeals = () => {
           dropoff:locations!routes_dropoff_location_fkey (name)
         `)
         .eq('status', 'active')
+        .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true });
       
       if (routesError) throw routesError;
