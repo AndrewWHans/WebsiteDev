@@ -71,12 +71,6 @@ export const AdminDeals = () => {
   useEffect(() => {
     loadDeals();
   }, []);
-  
-  useEffect(() => {
-    if (deals.length > 0) {
-      loadTaggedRoutesCount();
-    }
-  }, [deals]);
 
   useEffect(() => {
     if (editingDeal) {
@@ -115,6 +109,9 @@ export const AdminDeals = () => {
 
       if (error) throw error;
       setDeals(data || []);
+      if ((data || []).length > 0) {
+        await loadTaggedRoutesCount(data || []);
+      }
     } catch (err: any) {
       console.error('Error loading deals:', err);
       setError('Failed to load deals');
@@ -123,9 +120,9 @@ export const AdminDeals = () => {
     }
   };
   
-  const loadTaggedRoutesCount = async () => {
+  const loadTaggedRoutesCount = async (dealsList: Deal[]) => {
     try {
-      const dealIds = deals.map(deal => deal.id);
+      const dealIds = dealsList.map(deal => deal.id);
       
       const { data, error } = await supabase
         .from('deal_route_tags')
@@ -140,7 +137,7 @@ export const AdminDeals = () => {
         return acc;
       }, {});
       
-      setDeals(deals.map(deal => ({
+      setDeals(dealsList.map(deal => ({
         ...deal,
         tagged_routes: countMap[deal.id] || 0
       })));
