@@ -129,13 +129,13 @@ export const AdminDeals = () => {
       
       const { data, error } = await supabase
         .from('deal_route_tags')
-        .select('deal_id, count(*)', { count: 'exact' })
+        .select('deal_id, count', { count: 'exact' })
         .in('deal_id', dealIds)
         .group('deal_id');
       
       if (error) throw error;
       
-      const countMap = (data || []).reduce((acc, item) => {
+      const countMap = (data || []).reduce((acc: Record<string, number>, item: { deal_id: string; count: number }) => {
         acc[item.deal_id] = parseInt(item.count);
         return acc;
       }, {});
