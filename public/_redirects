@@ -1,0 +1,8 @@
+# Handle admin dashboard routes first
+/admin-dashboard/* /index.html 200
+
+# Handle shuttles routes
+/shuttles/* /index.html 200
+
+# Handle all other SPA routes
+/* /index.html 200

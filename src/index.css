@@ -1,0 +1,273 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set black background on html and body */
+@layer base {
+  html, body {
+    @apply bg-black;
+    scroll-behavior: smooth;
+  }
+}
+
+/* Add responsive breakpoints */
+@layer utilities {
+  .xs\:hidden {
+    display: none;
+  }
+  .xs\:inline {
+    display: inline;
+  }
+  @media (min-width: 480px) {
+    .xs\:hidden {
+      display: inline;
+    }
+    .xs\:inline {
+      display: none;
+    }
+  }
+}
+
+/* Loading animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Animation classes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s infinite;
+}
+
+@keyframes slide {
+  from { background-position: 0 0; }
+  to { background-position: 32px 0; }
+}
+
+.animate-slide {
+  animation: slide 1s linear infinite;
+}
+
+/* Swiper customization */
+.qr-swiper {
+  padding-bottom: 2rem !important;
+}
+
+.qr-swiper .swiper-pagination-bullet {
+  background: #FFD700;
+  opacity: 0.5;
+}
+
+.qr-swiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #FFD700;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .break-words {
+    word-break: break-word;
+  }
+}
+
+/* Page transition classes */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Custom shadow for gold elements */
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Mobile navigation active state */
+.mobile-nav-active {
+  color: #FFD700 !important;
+}
+
+/* Swiper customization */
+.qr-swiper {
+  padding-bottom: 2rem !important;
+}
+
+/* Deal carousel customization */
+.deals-swiper {
+  overflow: visible !important;
+  padding: 0.25rem 0 1.25rem 0 !important;
+  position: relative;
+  margin: 0 -0.5rem;
+  width: calc(100% + 1rem);
+}
+
+.deals-swiper .swiper-slide {
+  height: auto !important;
+  transition: all 0.4s ease;
+  opacity: 0.65;
+  transform: scale(0.9);
+}
+
+.deals-swiper .swiper-slide-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
+  transition: all 0.4s ease;
+}
+
+.deals-swiper .swiper-slide-prev,
+.deals-swiper .swiper-slide-next {
+  opacity: 0.75;
+  transform: scale(0.95);
+  z-index: 1;
+  transition: all 0.4s ease;
+}
+
+.deals-pagination {
+  margin-top: 0.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Customize pagination bullets */
+.deals-pagination .swiper-pagination-bullet {
+  width: 5px;
+  height: 5px !important;
+  background: rgba(255, 215, 0, 0.3);
+  opacity: 1;
+  margin: 0 2px;
+  transition: all 0.3s ease;
+}
+
+.deals-pagination .swiper-pagination-bullet-active {
+  width: 6px;
+  height: 6px !important;
+  background: #FFD700;
+}
+
+/* Add hover effect to carousel navigation buttons */
+.swiper-button-prev,
+.swiper-button-next {
+  color: #FFD700 !important;
+  transition: all 0.2s ease !important;
+  z-index: 5 !important;
+}
+
+.swiper-button-prev:hover,
+.swiper-button-next:hover {
+  transform: scale(1.1);
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+}
+
+/* Loading animation for infinite scroll */
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+.animate-fadeInOut {
+  animation: fadeInOut 1.2s ease-in-out infinite;
+}
+
+/* Make sure the carousel doesn't overflow on mobile */
+@media (max-width: 640px) {
+  .deals-swiper {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    width: calc(100% + 1rem);
+    padding: 0.25rem 0 1.25rem 0;
+  }
+  
+  /* Smaller pagination bullets on mobile */
+  .deals-pagination .swiper-pagination-bullet {
+    width: 4px;
+    height: 4px !important;
+  }
+  
+  .deals-pagination .swiper-pagination-bullet-active {
+    width: 5px;
+    height: 5px !important;
+  }
+}
+
+/* Smooth transition when looping */
+.swiper-wrapper {
+  transition-timing-function: ease-out !important;
+}
+
+/* Compact deal cards for related deals section */
+.compact-deal-card {
+  max-height: 280px;
+}
+
+@media (max-width: 640px) {
+  .compact-deal-card {
+    max-height: 240px;
+  }
+}
