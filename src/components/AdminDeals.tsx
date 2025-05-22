@@ -14,7 +14,9 @@ import {
   MapPin,
   Image,
   Link,
-  Bus
+  Bus,
+  Check,
+  Search
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -736,5 +738,4 @@ export const AdminDeals = () => {
                       <Image className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
-                      type="text"
-                      {...register('
+                      type="
