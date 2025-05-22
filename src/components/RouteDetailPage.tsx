@@ -492,7 +492,7 @@ export const RouteDetailPage = () => {
             />
             
             {/* Related Deals Section */}
-            <RelatedDeals city={route.city} user={user} />
+            <RelatedDeals city={route.city} routeId={route.id} user={user} />
           </div>
           
           {/* Right Column: Booking Options */}
