@@ -13,7 +13,6 @@ import 'swiper/css/navigation';
 interface RelatedDealsProps {
   city?: string;
   routeId?: string;
-  routeId?: string;
   user?: any;
 }
 
@@ -45,11 +44,6 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, routeId, user 
     // Get total count of deals for this city
     const getTotalCount = async () => {
       try {
-        let query = supabase
-          .from('deals')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
-          
         let query = supabase
           .from('deals')
           .select('*', { count: 'exact', head: true })
@@ -90,53 +84,6 @@ export const RelatedDeals: React.FC<RelatedDealsProps> = ({ city, routeId, user 
         setIsLooping(false);
       }
       
-      let query = supabase
-        .from('deals')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-      
-      // If we have a routeId, prioritize tagged deals for this route
-      if (routeId) {
-        // First try to get deals tagged to this route
-        const { data: taggedDeals, error: taggedError } = await supabase
-          .from('deal_route_tags')
-          .select('deal_id')
-          .eq('route_id', routeId);
-        
-        if (!taggedError && taggedDeals && taggedDeals.length > 0) {
-          // Get the tagged deals first
-          const taggedDealIds = taggedDeals.map(tag => tag.deal_id);
-          
-          const { data: priorityDeals, error: priorityError } = await supabase
-            .from('deals')
-            .select('*')
-            .eq('status', 'active')
-            .in('id', taggedDealIds)
-            .order('created_at', { ascending: false })
-            .limit(pageSize);
-          
-          if (!priorityError && priorityDeals && priorityDeals.length > 0) {
-            // If we have tagged deals, use them
-            if (pageToLoad === 0) {
-              setRelatedDeals(priorityDeals);
-              setHasMoreDeals(priorityDeals.length === pageSize);
-            } else {
-              setRelatedDeals(prev => [...prev, ...priorityDeals]);
-              setHasMoreDeals(priorityDeals.length === pageSize);
-            }
-            
-            setLoading(false);
-            setLoadingMore(false);
-            return;
-          }
-        }
-        
-        // If no tagged deals or error, fall back to city-based filtering
-        if (city) {
-          query = query.eq('city', city);
-        }
-      } else if (city) {
       let query = supabase
         .from('deals')
         .select('*')
