@@ -197,7 +197,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         throw signUpError;
       }
       
-      // Update profile with phone number
+      // If the user was created successfully and we have a user object
       if (signUpData?.user) {
         try {
           const { error: profileError } = await supabase
@@ -212,11 +212,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           if (profileError) {
             console.error('Error updating profile with name and phone:', profileError);
           }
+      
+          // Call the onAuthSuccess callback with the user data
+          if (onAuthSuccess) {
+            onAuthSuccess(signUpData.user);
+          }
+          
+          // Close the modal since the user is now signed in
+          onClose();
+          return;
         } catch (err) {
           console.error('Error updating profile with phone number:', err);
         }
       }
       
+      // If we didn't return early (user wasn't created or callback failed)
       setSuccess('Account created successfully! You can now sign in.');
       setActiveTab('signIn');
       signUpForm.reset();
