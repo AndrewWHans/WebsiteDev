@@ -89,8 +89,12 @@ export const toEST = (date: Date) => {
 // Function to ensure profile exists
 export const ensureProfile = async (userId: string, email: string) => {
   try {
+    // Get user metadata to check for first and last name
+    const { data: userData } = await supabase.auth.getUser();
+    const metadata = userData?.user?.user_metadata;
+    
     // Call RPC function to create profile if it doesn't exist
-    const { error } = await supabase.rpc('ensure_user_profile', {
+    const { data, error } = await supabase.rpc('ensure_user_profile', {
       user_id: userId,
       user_email: email
     });
@@ -98,6 +102,21 @@ export const ensureProfile = async (userId: string, email: string) => {
     if (error) {
       console.error('Error ensuring profile:', error);
       throw error;
+    }
+    
+    // If we have first_name and last_name in metadata, update the profile
+    if (metadata?.first_name && metadata?.last_name) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: metadata.first_name,
+          last_name: metadata.last_name
+        })
+        .eq('id', userId);
+        
+      if (updateError) {
+        console.error('Error updating profile with name:', updateError);
+      }
     }
   } catch (error) {
     console.error('Error in ensureProfile:', error);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, X, Eye, EyeOff, Phone, ChevronDown, Check } from 'lucide-react';
+import { Mail, Lock, X, Eye, EyeOff, Phone, ChevronDown, Check, User } from 'lucide-react';
 import { parsePhoneNumber, isValidPhoneNumber, CountryCode } from 'libphonenumber-js';
 import { supabase, ensureProfile } from '../lib/supabase';
 import { LegalModal } from './LegalModal';
@@ -19,6 +19,8 @@ type SignInFormData = {
 
 type SignUpFormData = {
   email: string;
+  firstName: string;
+  lastName: string;
   countryCode: string;
   phone: string;
   password: string;
@@ -173,7 +175,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       
       // Prepare user metadata with phone and referral code if provided
       const metadata: any = {
-        phone_number: formattedPhone
+        phone_number: formattedPhone,
+        first_name: data.firstName,
+        last_name: data.lastName
       };
       
       // Add referral code to metadata if provided
@@ -196,10 +200,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       // Update profile with phone number
       if (signUpData?.user) {
         try {
-          await supabase
+          const { error: profileError } = await supabase
             .from('profiles')
-            .update({ phone_number: formattedPhone })
+            .update({ 
+              phone_number: formattedPhone,
+              first_name: data.firstName,
+              last_name: data.lastName
+            })
             .eq('id', signUpData.user.id);
+            
+          if (profileError) {
+            console.error('Error updating profile with name and phone:', profileError);
+          }
         } catch (err) {
           console.error('Error updating profile with phone number:', err);
         }
@@ -420,6 +432,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   {signUpForm.formState.errors.email && (
                     <p className="mt-1 text-red-400 text-xs">Email is required</p>
                   )}
+                </div>
+
+                {/* First and Last Name */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-gray-300 mb-1 text-sm" htmlFor="firstName">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User size={16} className="text-gold/70" />
+                      </div>
+                      <input
+                        id="firstName"
+                        type="text"
+                        {...signUpForm.register('firstName', { required: 'First name is required' })}
+                        className="w-full bg-gray-800 text-white py-2 pl-10 pr-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-gold border border-gray-700"
+                        placeholder="John"
+                      />
+                    </div>
+                    {signUpForm.formState.errors.firstName && (
+                      <p className="mt-1 text-red-400 text-xs">{signUpForm.formState.errors.firstName.message}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-300 mb-1 text-sm" htmlFor="lastName">
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User size={16} className="text-gold/70" />
+                      </div>
+                      <input
+                        id="lastName"
+                        type="text"
+                        {...signUpForm.register('lastName', { required: 'Last name is required' })}
+                        className="w-full bg-gray-800 text-white py-2 pl-10 pr-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-gold border border-gray-700"
+                        placeholder="Doe"
+                      />
+                    </div>
+                    {signUpForm.formState.errors.lastName && (
+                      <p className="mt-1 text-red-400 text-xs">{signUpForm.formState.errors.lastName.message}</p>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Phone Number */}
