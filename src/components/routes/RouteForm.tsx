@@ -180,12 +180,11 @@ export const RouteForm = ({
                     showTimeSelect
                     showTimeSelectOnly
                     timeIntervals={30}
-                    timeFormat="HH:mm"
+                    timeFormat="h:mm aa"
                     timeCaption="Time"
-                    dateFormat="HH:mm"
+                    dateFormat="h:mm aa"
                     autoComplete="off"
                     shouldCloseOnSelect={true}
-                    onChangeRaw={(e) => e.preventDefault()}
                     className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     placeholderText="Add time slot"
                   />
@@ -196,7 +195,7 @@ export const RouteForm = ({
                           key={index}
                           className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                         >
-                          {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          {time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
                           <button
                             type="button"
                             onClick={() => setSelectedTimes(prev => prev.filter((_, i) => i !== index))}
