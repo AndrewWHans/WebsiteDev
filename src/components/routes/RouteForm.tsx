@@ -38,6 +38,7 @@ export const RouteForm = ({
   handleSubmit
 }: RouteFormProps) => {
   const [timeInputValue, setTimeInputValue] = useState('');
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
 
   useEffect(() => {
     if (editingRoute) {
@@ -82,6 +83,7 @@ export const RouteForm = ({
     if (time) {
       setSelectedTimes(prev => [...prev, time]);
       setTimeInputValue(''); // Clear input after selection
+      setShowTimeDropdown(false); // Hide dropdown after selection
     }
   };
 
@@ -220,11 +222,16 @@ export const RouteForm = ({
                     <input
                       type="text"
                       value={timeInputValue}
-                      onChange={(e) => setTimeInputValue(e.target.value)}
+                      onChange={(e) => {
+                        setTimeInputValue(e.target.value);
+                        setShowTimeDropdown(true);
+                      }}
+                      onFocus={() => setShowTimeDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowTimeDropdown(false), 150)}
                       className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Type to filter times or select from dropdown"
                     />
-                    {(timeInputValue || filteredTimes.length > 0) && (
+                    {showTimeDropdown && (
                       <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                         {filteredTimes.map((time, index) => (
                           <div
