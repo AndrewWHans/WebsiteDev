@@ -52,6 +52,32 @@ export const RouteForm = ({
     }
   }, [editingRoute, setValue]);
 
+  // Generate all possible times in 15-minute intervals
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const date = new Date();
+        date.setHours(hour, minute, 0, 0);
+        times.push(date);
+      }
+    }
+    return times;
+  };
+
+  const allTimes = generateTimeOptions();
+
+  // Filter times based on input
+  const getFilteredTimes = () => {
+    if (!timeInputValue) return allTimes;
+    return allTimes.filter(time => {
+      const timeString = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+      return timeString.toLowerCase().includes(timeInputValue.toLowerCase());
+    });
+  };
+
+  const filteredTimes = getFilteredTimes();
+
   const handleTimeChange = (time) => {
     if (time) {
       setSelectedTimes(prev => [...prev, time]);
@@ -190,23 +216,33 @@ export const RouteForm = ({
                   Time
                 </label>
                 <div className="mt-1">
-                  <DatePicker
-                    selected={null}
-                    onChange={handleTimeChange}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeFormat="h:mm aa"
-                    timeCaption="Time"
-                    dateFormat="h:mm aa"
-                    autoComplete="off"
-                    shouldCloseOnSelect={true}
-                    onChangeRaw={handleTimeInputChange}
-                    filterTime={filterTime}
-                    value={timeInputValue}
-                    className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholderText="Add time slot"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={timeInputValue}
+                      onChange={(e) => setTimeInputValue(e.target.value)}
+                      className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Type to filter times or select from dropdown"
+                    />
+                    {(timeInputValue || filteredTimes.length > 0) && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                        {filteredTimes.map((time, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleTimeChange(time)}
+                            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white"
+                          >
+                            {time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </div>
+                        ))}
+                        {filteredTimes.length === 0 && timeInputValue && (
+                          <div className="cursor-default select-none relative py-2 pl-3 pr-9 text-gray-500">
+                            No times found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {selectedTimes.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {selectedTimes.map((time, index) => (
