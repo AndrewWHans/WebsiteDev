@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, DollarSign, Users, Plus } from 'lucide-react';
@@ -37,6 +37,8 @@ export const RouteForm = ({
   setShowLocationModal,
   handleSubmit
 }: RouteFormProps) => {
+  const [timeInputValue, setTimeInputValue] = useState('');
+
   useEffect(() => {
     if (editingRoute) {
       setValue('pickup_location', editingRoute.pickup_location || '');
@@ -49,6 +51,24 @@ export const RouteForm = ({
       setSelectedTimes(editingRoute.time_slots.map(time => new Date(`1970-01-01T${time}`)));
     }
   }, [editingRoute, setValue]);
+
+  const handleTimeChange = (time) => {
+    if (time) {
+      setSelectedTimes(prev => [...prev, time]);
+      setTimeInputValue(''); // Clear input after selection
+    }
+  };
+
+  const handleTimeInputChange = (e) => {
+    setTimeInputValue(e.target.value);
+    e.preventDefault(); // Prevent auto-completion
+  };
+
+  const filterTime = (time) => {
+    if (!timeInputValue) return true;
+    const timeString = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    return timeString.toLowerCase().includes(timeInputValue.toLowerCase());
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
@@ -172,11 +192,7 @@ export const RouteForm = ({
                 <div className="mt-1">
                   <DatePicker
                     selected={null}
-                    onChange={(time) => {
-                      if (time) {
-                        setSelectedTimes(prev => [...prev, time]);
-                      }
-                    }}
+                    onChange={handleTimeChange}
                     showTimeSelect
                     showTimeSelectOnly
                     timeIntervals={15}
@@ -185,6 +201,9 @@ export const RouteForm = ({
                     dateFormat="h:mm aa"
                     autoComplete="off"
                     shouldCloseOnSelect={true}
+                    onChangeRaw={handleTimeInputChange}
+                    filterTime={filterTime}
+                    value={timeInputValue}
                     className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     placeholderText="Add time slot"
                   />
