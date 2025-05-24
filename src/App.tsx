@@ -71,42 +71,57 @@ function App() {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // Fetch user role when user changes
+  // Auth state management
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user) {
+    const initAuth = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (currentUser) {
+        setUser(currentUser);
+        
+        // Fetch user role when user is found
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single();
 
         if (!error && profile) {
           setUserRole(profile.role);
         }
-      } else {
-        setUserRole(null);
       }
-    };
-
-    fetchUserRole();
-  }, [user]);
-
-  // Auth state management
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser);
+      
       setIsLoading(false);
-    });
+    };
+    
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
+      
+      // If user signed in, fetch their role
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data) setUserRole(data.role);
+          });
+      } else {
+        setUserRole(null);
+      }
+      
+      // Close auth modal if it's open and user is signed in
+      if (session?.user && isAuthModalOpen) {
+        setIsAuthModalOpen(false);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isAuthModalOpen]);
 
   const handleSignOut = async () => {
     try {
