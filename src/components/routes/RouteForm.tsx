@@ -183,6 +183,9 @@ export const RouteForm = ({
                     timeFormat="HH:mm"
                     timeCaption="Time"
                     dateFormat="HH:mm"
+                    autoComplete="off"
+                    shouldCloseOnSelect={true}
+                    onChangeRaw={(e) => e.preventDefault()}
                     className="block w-full px-3 py-2 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     placeholderText="Add time slot"
                   />
