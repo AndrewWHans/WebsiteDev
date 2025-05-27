@@ -703,4 +703,49 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       
       {/* Booking Error */}
       {(bookingError || paymentMessage) && (
-        <div className="px-4 sm:px-6 pt-3 sm:
+        <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-0">
+          <div className="flex items-start text-red-400 text-sm">
+            <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+            <p>{bookingError || paymentMessage}</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Action buttons */}
+      <div className="p-4 sm:p-6 space-y-3">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleBookNow}
+          disabled={!selectedTimeSlot || bookingStatus === 'processing' || processingMilesPayment}
+          className="w-full bg-gold hover:bg-yellow-400 text-black py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {bookingStatus === 'processing' || processingMilesPayment ? (
+            <>
+              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Book Now
+            </>
+          )}
+        </motion.button>
+        
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleShareRoute}
+          className="w-full bg-gray-800 hover:bg-gray-700 text-white py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-colors flex items-center justify-center"
+        >
+          <Share2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+          Share Route
+        </motion.button>
+      </div>
+      
+      {/* Payment Loading Modal */}
+      {showPaymentLoading && (
+        <PaymentLoadingModal />
+      )}
+    </motion.div>
+  );
+};
