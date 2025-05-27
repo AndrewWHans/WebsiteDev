@@ -26,24 +26,6 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
   
   if (!showSuccessModal || !bookingDetails) return null;
   
-  const formatDate = (dateString: string) => {
-    try {
-      // For date-only strings (YYYY-MM-DD), add time component to avoid timezone shifts
-      const dateWithTime = dateString.includes('T') ? dateString : `${dateString}T12:00:00`;
-      const date = new Date(dateWithTime);
-      
-      return new Intl.DateTimeFormat('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      }).format(date);
-    } catch (error) {
-      console.error('Error formatting date:', error, dateString);
-      return dateString;
-    }
-  };
-  
   const handleDoneClick = () => {
     setShowSuccessModal(false);
     
@@ -81,7 +63,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Date</span>
-              <span className="text-white">{formatDate(bookingDetails.date)}</span>
+              <span className="text-white">{bookingDetails.date}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Time</span>
