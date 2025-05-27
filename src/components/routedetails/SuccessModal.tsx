@@ -26,6 +26,41 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
   
   if (!showSuccessModal || !bookingDetails) return null;
   
+  const formatDate = (dateString: string) => {
+    try {
+      // For date-only strings (YYYY-MM-DD), we need to handle them specially
+      // to avoid timezone shifts
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // Split the date string into components
+        const [year, month, day] = dateString.split('-').map(Number);
+        
+        // Create date with explicit year, month, day in local timezone
+        // Month is 0-indexed in JavaScript Date
+        const date = new Date(year, month - 1, day);
+        
+        return new Intl.DateTimeFormat('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }).format(date);
+      } else {
+        // Handle full datetime strings
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }).format(date);
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return dateString;
+    }
+  };
+  
   const handleDoneClick = () => {
     setShowSuccessModal(false);
     
@@ -63,7 +98,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Date</span>
-              <span className="text-white">{bookingDetails.date}</span>
+              <span className="text-white">{formatDate(bookingDetails.date)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Time</span>
