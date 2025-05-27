@@ -97,7 +97,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   // Format date helper function
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Add time component to ensure consistent timezone handling
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
@@ -207,7 +209,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     
     try {
       // Format the date for display in the UI
-      const routeDate = new Date(route.date);
+      const routeDate = new Date(route.date + 'T12:00:00');
       const formattedDate = routeDate.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
