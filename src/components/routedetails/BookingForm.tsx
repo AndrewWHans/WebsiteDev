@@ -97,7 +97,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   // Format date helper function
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Ensure we're working with a valid date by adding time component if needed
+    const dateWithTime = dateString.includes('T') ? dateString : `${dateString}T12:00:00`;
+    return new Date(dateWithTime).toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
@@ -379,8 +381,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       // Create booking details for success modal
       setBookingDetails({
         id: bookingResponse.id,
-        route: `${route.pickup?.name} to ${route.dropoff?.name}`,
-        date: formatDate(route.date),
+        route: `${route.pickup?.name || ''} to ${route.dropoff?.name || ''}`,
+        date: route.date, // Pass the raw date to allow proper formatting in the modal
         time: formatTime(selectedTimeSlot),
         quantity: selectedQuantity,
         price: route.price,
@@ -701,78 +703,4 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       
       {/* Booking Error */}
       {(bookingError || paymentMessage) && (
-        <div className="px-4 sm:px-6 pt-3 sm:pt-4 -mb-2">
-          <div className={`${
-            paymentMessage && !paymentMessage.includes('Failed') && !paymentMessage.includes('error')
-              ? 'bg-emerald-900/30 border border-emerald-700/50 text-emerald-300'
-              : 'bg-red-900/30 border border-red-700/50 text-red-300'
-          } rounded-lg p-2 sm:p-3 text-xs sm:text-sm flex items-start`}>
-            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 flex-shrink-0 mt-0.5 text-red-400" />
-            <span className="leading-tight">{paymentMessage || bookingError}</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Actions */}
-      <div className="p-4 sm:p-6">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleBookNow}
-          disabled={
-            bookingStatus === 'processing' ||
-            processingPayment || 
-            processingMilesPayment ||
-            !selectedTimeSlot ||
-            getAvailableSeats() < selectedQuantity
-          }
-          className="w-full bg-gold hover:bg-yellow-400 text-black font-bold py-2.5 sm:py-3 rounded-lg mb-3 sm:mb-4 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-glow text-sm sm:text-base"
-        >
-          {bookingStatus === 'processing' || processingPayment || processingMilesPayment ? (
-            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-          ) : bookingStatus === 'success' ? (
-            <>
-              <Check className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-              Booked Successfully!
-            </>
-          ) : milesApplied && milesDiscount >= calculateTotal() ? (
-            'Book with Miles'
-          ) : (
-            'Book Now'
-          )}
-        </motion.button>
-        
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleShareRoute}
-          className="w-full border border-gold/50 text-gold hover:bg-gold/10 font-medium py-2.5 sm:py-3 rounded-lg flex items-center justify-center transition-colors text-sm sm:text-base"
-        >
-          <Share2 size={16} className="mr-1.5 sm:mr-2" />
-          Share This Route
-        </motion.button>
-        
-        {!isConfirmed && (
-          <div className="mt-4 sm:mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-3 sm:p-4">
-            <div className="flex">
-              <AlertTriangle className="text-yellow-500 mr-1.5 sm:mr-2 shrink-0 mt-0.5" size={16} />
-              <p className="text-xs sm:text-sm text-yellow-100 leading-tight">
-                This route needs at least {route.min_threshold} passengers to be confirmed. 
-                If the minimum isn't met, you'll receive a full refund.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Payment Loading Modal */}
-      <PaymentLoadingModal
-        isOpen={showPaymentLoading}
-        progressPercentage={Math.min(100, Math.round((route.tickets_sold / route.min_threshold) * 100))}
-        minThreshold={route.min_threshold}
-        ticketsSold={route.tickets_sold}
-        quantity={selectedQuantity}
-      />
-    </motion.div>
-  );
-};
+        <div className="px-4 sm:px-6 pt-3 sm:
