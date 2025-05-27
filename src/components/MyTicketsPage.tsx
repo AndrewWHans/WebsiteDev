@@ -200,8 +200,8 @@ export const MyTicketsPage = () => {
   };
 
   const formatDate = (dateString: string) => {
-    // Handle dates with timezone information
-    const date = new Date(dateString);
+    // Add time component to ensure consistent timezone handling
+    const date = new Date(dateString + 'T12:00:00');
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
@@ -281,7 +281,7 @@ export const MyTicketsPage = () => {
       case 'refunded':
         return <XCircle size={16} />;
       case 'pending':
-        return <Clock4 size={16} />;
+        return <Clock size={16} />;
       default:
         return null;
     }
