@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Sparkles, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { formatToEST } from '../../lib/supabase';
 
 type SuccessModalProps = {
   showSuccessModal: boolean;
@@ -64,13 +63,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Date</span>
-              <span className="text-white">
-                {bookingDetails.date ? new Date(bookingDetails.date).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                }) : ''}
-              </span>
+              <span className="text-white">{bookingDetails.date}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Time</span>
