@@ -245,7 +245,8 @@ export const WalletPage: React.FC<WalletPageProps> = ({ onBack }) => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Add time component to ensure consistent timezone handling
+    const date = new Date(dateString + 'T12:00:00');
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
