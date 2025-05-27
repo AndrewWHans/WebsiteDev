@@ -24,18 +24,6 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
 }) => {
   const navigate = useNavigate();
   
-  // Format date to prevent timezone display issues
-  const formatDate = (dateString: string) => {
-    // Add time component to ensure consistent timezone handling
-    const date = new Date(dateString + 'T12:00:00');
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-  
   if (!showSuccessModal || !bookingDetails) return null;
   
   const handleDoneClick = () => {
@@ -75,7 +63,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Date</span>
-              <span className="text-white">{formatDate(bookingDetails.date)}</span>
+              <span className="text-white">{bookingDetails.date}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Time</span>
