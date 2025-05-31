@@ -1,23 +1,29 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
-import { corsHeaders } from '../_shared/cors.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+};
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: corsHeaders
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
-  
+
   try {
-    const { userId, dealId, quantity } = await req.json();
-    
+    const { userId, dealId, quantity = 1 } = await req.json();
+
     // Validate required fields
-    if (!userId || !dealId || !quantity) {
-      throw new Error('Missing required fields');
+    if (!userId || !dealId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: userId, dealId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
+
     // Get Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -27,67 +33,75 @@ serve(async (req) => {
     // Get deal details
     const { data: deal, error: dealError } = await supabaseClient
       .from('deals')
-      .select('id, title, price, location_name, purchases')
+      .select('*')
       .eq('id', dealId)
       .single();
-      
-    if (dealError) throw dealError;
-    if (!deal) throw new Error('Deal not found');
-    
-    // Validate that the deal is actually free
-    if (deal.price > 0) {
-      throw new Error('This deal is not free and requires payment');
+
+    if (dealError || !deal) {
+      return new Response(
+        JSON.stringify({ error: 'Deal not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
+
+    // Validate that the deal is free
+    if (deal.price !== 0) {
+      return new Response(
+        JSON.stringify({ error: 'This deal is not free' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create deal booking record
-    const { data: dealBooking, error: dealBookingError } = await supabaseClient
+    const { data: booking, error: bookingError } = await supabaseClient
       .from('deal_bookings')
       .insert({
         user_id: userId,
         deal_id: dealId,
         quantity: quantity,
-        total_price: 0, // Free deal
+        total_amount: 0,
+        payment_method: 'free',
         status: 'confirmed',
-        booking_date: new Date().toISOString(),
-        miles_redeemed: 0 // No miles used for free deals
+        booking_date: new Date().toISOString()
       })
       .select()
       .single();
-      
-    if (dealBookingError) throw dealBookingError;
-    
-    // Increment deal purchases count
-    const { error: updateDealError } = await supabaseClient
+
+    if (bookingError) {
+      console.error('Error creating booking:', bookingError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create booking' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Update deal purchase count
+    const { error: updateError } = await supabaseClient
       .from('deals')
       .update({ 
-        purchases: deal.purchases + quantity,
-        updated_at: new Date().toISOString()
+        purchases: deal.purchases + quantity 
       })
       .eq('id', dealId);
-      
-    if (updateDealError) throw updateDealError;
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Free deal claimed successfully',
-      booking: dealBooking
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      },
-      status: 200
-    });
+
+    if (updateError) {
+      console.error('Error updating deal purchases:', updateError);
+      // Don't fail the request if this update fails
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        booking: booking,
+        message: 'Free deal claimed successfully!' 
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
   } catch (error) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      },
-      status: 400
-    });
+    console.error('Error processing free deal claim:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-});
+}); 
