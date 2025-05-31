@@ -269,6 +269,47 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
     }
   };
 
+  const handleFreeDealClaim = async () => {
+    if (!user || !deal) return;
+    
+    setProcessingPayment(true);
+    setError(null);
+    
+    try {
+      // Call the Edge Function to process free deal claim
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-free-deal-claim`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            dealId: deal.id,
+            quantity: quantity
+          }),
+        }
+      );
+
+      const { success, error: responseError } = await response.json();
+
+      if (responseError) throw new Error(responseError);
+      if (!success) throw new Error('Failed to claim free deal');
+
+      // Show success message and close modal
+      alert('Free deal claimed successfully!');
+      onClose();
+      
+    } catch (error: any) {
+      console.error('Free deal claim error:', error);
+      setError(error.message || 'An error occurred while claiming the free deal. Please try again.');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const handleBookNow = () => {
     if (!user) {
       alert('Please sign in to purchase this deal');
@@ -279,6 +320,12 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
   };
 
   const handlePurchase = () => {
+    // If deal is free, claim it directly without payment
+    if (calculateTotal() === 0) {
+      handleFreeDealClaim();
+      return;
+    }
+    
     // If miles fully cover the total, process directly without Stripe
     if (milesApplied && milesDiscount >= calculateTotal()) {
       handleMilesOnlyPayment();
@@ -330,7 +377,7 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
         <div className="p-6 relative z-10 overflow-y-auto max-h-[calc(90vh-12rem)]">
           {/* Price Tag */}
           <div className="absolute -top-10 right-6 bg-gold text-black text-xl font-bold px-4 py-2 rounded-lg shadow-lg">
-            ${deal.price.toFixed(2)}
+            {deal.price === 0 ? 'FREE' : `$${deal.price.toFixed(2)}`}
           </div>
           
           {/* Description */}
@@ -371,7 +418,7 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
                 <DollarSign className="w-4 h-4 text-gold mr-2 mt-0.5" />
                 <div>
                   <p className="text-white text-sm font-medium">Price</p>
-                  <p className="text-gray-400 text-xs">${deal.price.toFixed(2)}</p>
+                  <p className="text-gray-400 text-xs">{deal.price === 0 ? 'Free' : `$${deal.price.toFixed(2)}`}</p>
                 </div>
               </div>
             </div>
@@ -428,126 +475,128 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
                 </div>
               </div>
               
-              {/* Miles Redemption Section */}
-              <div className="mb-4 bg-gray-800/80 rounded-lg p-3 border border-gold/20">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    <div className="bg-gold/20 p-1.5 rounded-full mr-2">
-                      <Wind className="h-4 w-4 text-gold" />
-                    </div>
-                    <div>
-                      <p className="text-white text-sm font-medium">ULimo Miles</p>
-                      <p className="text-xs text-gray-400">
-                        Balance: <span className="text-gold">{milesBalance}</span> miles
-                      </p>
+              {/* Miles Redemption Section - Hidden for free deals */}
+              {deal.price > 0 && (
+                <div className="mb-4 bg-gray-800/80 rounded-lg p-3 border border-gold/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center">
+                      <div className="bg-gold/20 p-1.5 rounded-full mr-2">
+                        <Wind className="h-4 w-4 text-gold" />
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium">ULimo Miles</p>
+                        <p className="text-xs text-gray-400">
+                          Balance: <span className="text-gold">{milesBalance}</span> miles
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                {milesApplied ? (
-                  <div className="mt-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-300 text-sm">Miles applied:</span>
-                      <span className="text-gold text-sm font-medium">{milesAmount.toLocaleString()} miles</span>
-                    </div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-gray-300 text-sm">Discount:</span>
-                      <span className="text-emerald-400 text-sm font-medium">
-                        -${milesDiscount.toFixed(2)}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleRemoveMiles}
-                      className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm transition-colors"
-                    >
-                      Remove Miles
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <input
-                        type="number"
-                        min="0"
-                        max={milesBalance}
-                        value={milesAmount || ''}
-                        onChange={(e) => setMilesAmount(parseInt(e.target.value) || 0)}
-                        className="block w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-3 text-white focus:ring-1 focus:ring-gold focus:border-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="Enter miles amount"
-                      />
+                  
+                  {milesApplied ? (
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-300 text-sm">Miles applied:</span>
+                        <span className="text-gold text-sm font-medium">{milesAmount.toLocaleString()} miles</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-300 text-sm">Discount:</span>
+                        <span className="text-emerald-400 text-sm font-medium">
+                          -${milesDiscount.toFixed(2)}
+                        </span>
+                      </div>
                       <button
-                        onClick={() => {
-                          // Calculate the maximum miles that can be applied based on the total price
-                          const totalPrice = calculateTotal();
-                          const maxApplicableMiles = Math.floor(totalPrice / milesValue);
-                          
-                          // If partial payment would result in less than $0.50 remaining, adjust the max miles
-                          const minRemainingForStripe = 0.50;
-                          let adjustedMaxMiles = maxApplicableMiles;
-                          
-                          // If applying all miles would leave less than $0.50 but not cover the full amount
-                          const remainingAfterMaxMiles = totalPrice - (maxApplicableMiles * milesValue);
-                          if (remainingAfterMaxMiles > 0 && remainingAfterMaxMiles < minRemainingForStripe) {
-                            // Either use enough miles to make it free, or keep at least $0.50 for Stripe
-                            if (milesBalance >= Math.ceil(totalPrice / milesValue)) {
-                              // User has enough miles to cover the full amount
-                              adjustedMaxMiles = Math.ceil(totalPrice / milesValue);
-                            } else {
-                              // Adjust to keep at least $0.50 for Stripe
-                              adjustedMaxMiles = Math.floor((totalPrice - minRemainingForStripe) / milesValue);
-                            }
-                          }
-                          
-                          // Use the smaller of user's miles balance or adjusted max applicable miles
-                          const maxMiles = Math.min(milesBalance, adjustedMaxMiles);
-                          setMilesAmount(maxMiles);
-                        }}
-                        className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                        onClick={handleRemoveMiles}
+                        className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm transition-colors"
                       >
-                        Max
+                        Remove Miles
                       </button>
                     </div>
-                    
-                    {milesAmount > 0 && (
-                      <div className="text-sm text-gray-400 mb-3">
-                        {milesAmount} miles = ${(milesAmount * milesValue).toFixed(2)} discount
+                  ) : (
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <input
+                          type="number"
+                          min="0"
+                          max={milesBalance}
+                          value={milesAmount || ''}
+                          onChange={(e) => setMilesAmount(parseInt(e.target.value) || 0)}
+                          className="block w-full bg-gray-700 border border-gray-600 rounded-lg py-2 px-3 text-white focus:ring-1 focus:ring-gold focus:border-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="Enter miles amount"
+                        />
+                        <button
+                          onClick={() => {
+                            // Calculate the maximum miles that can be applied based on the total price
+                            const totalPrice = calculateTotal();
+                            const maxApplicableMiles = Math.floor(totalPrice / milesValue);
+                            
+                            // If partial payment would result in less than $0.50 remaining, adjust the max miles
+                            const minRemainingForStripe = 0.50;
+                            let adjustedMaxMiles = maxApplicableMiles;
+                            
+                            // If applying all miles would leave less than $0.50 but not cover the full amount
+                            const remainingAfterMaxMiles = totalPrice - (maxApplicableMiles * milesValue);
+                            if (remainingAfterMaxMiles > 0 && remainingAfterMaxMiles < minRemainingForStripe) {
+                              // Either use enough miles to make it free, or keep at least $0.50 for Stripe
+                              if (milesBalance >= Math.ceil(totalPrice / milesValue)) {
+                                // User has enough miles to cover the full amount
+                                adjustedMaxMiles = Math.ceil(totalPrice / milesValue);
+                              } else {
+                                // Adjust to keep at least $0.50 for Stripe
+                                adjustedMaxMiles = Math.floor((totalPrice - minRemainingForStripe) / milesValue);
+                              }
+                            }
+                            
+                            // Use the smaller of user's miles balance or adjusted max applicable miles
+                            const maxMiles = Math.min(milesBalance, adjustedMaxMiles);
+                            setMilesAmount(maxMiles);
+                          }}
+                          className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                        >
+                          Max
+                        </button>
                       </div>
-                    )}
-                    
-                    {/* Add warning message for invalid miles amount */}
-                    {milesAmount > 0 && 
-                     calculateTotal() - (milesAmount * milesValue) > 0 && 
-                     calculateTotal() - (milesAmount * milesValue) < 0.50 && (
-                      <div className="text-xs text-amber-400 mb-3 flex items-start">
-                        <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5" />
-                        <span>Discounted total must be at least $0.50 or cover the full amount</span>
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={handleApplyMiles}
-                      disabled={
-                        milesAmount <= 0 || 
-                        milesAmount > milesBalance || 
-                        loading ||
-                        (Math.abs(milesAmount * milesValue - calculateTotal()) > 0.001 &&
-                         calculateTotal() - (milesAmount * milesValue) > 0 && 
-                         calculateTotal() - (milesAmount * milesValue) < 0.50)
-                      }
-                      className="w-full bg-gold hover:bg-yellow-400 text-black py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Applying...
-                        </>
-                      ) : (
-                        'Apply Miles'
+                      
+                      {milesAmount > 0 && (
+                        <div className="text-sm text-gray-400 mb-3">
+                          {milesAmount} miles = ${(milesAmount * milesValue).toFixed(2)} discount
+                        </div>
                       )}
-                    </button>
-                  </div>
-                )}
-              </div>
+                      
+                      {/* Add warning message for invalid miles amount */}
+                      {milesAmount > 0 && 
+                       calculateTotal() - (milesAmount * milesValue) > 0 && 
+                       calculateTotal() - (milesAmount * milesValue) < 0.50 && (
+                        <div className="text-xs text-amber-400 mb-3 flex items-start">
+                          <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5" />
+                          <span>Discounted total must be at least $0.50 or cover the full amount</span>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={handleApplyMiles}
+                        disabled={
+                          milesAmount <= 0 || 
+                          milesAmount > milesBalance || 
+                          loading ||
+                          (Math.abs(milesAmount * milesValue - calculateTotal()) > 0.001 &&
+                           calculateTotal() - (milesAmount * milesValue) > 0 && 
+                           calculateTotal() - (milesAmount * milesValue) < 0.50)
+                        }
+                        className="w-full bg-gold hover:bg-yellow-400 text-black py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          'Apply Miles'
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Price summary */}
               <div className="p-3 bg-gray-800/50 rounded-lg mb-4">
@@ -588,6 +637,8 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
                 >
                   {processingPayment ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : calculateTotal() === 0 ? (
+                    'Claim Free Deal'
                   ) : milesApplied && milesDiscount >= calculateTotal() ? (
                     'Pay with Miles'
                   ) : (
