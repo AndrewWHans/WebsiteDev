@@ -477,7 +477,7 @@ export const AdminDeals = () => {
                           {deal.city || 'Not specified'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                          ${deal.price.toFixed(2)}
+                          {deal.price === 0 ? 'Free' : `$${deal.price.toFixed(2)}`}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           <div className="flex flex-col">
