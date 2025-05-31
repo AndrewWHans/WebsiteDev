@@ -597,7 +597,7 @@ export const AdminDeals = () => {
                       min="0"
                       {...register('price', { 
                         required: 'Price is required',
-                        min: { value: 0.01, message: 'Price must be greater than 0' }
+                        min: { value: 0, message: 'Price must be 0 or greater' }
                       })}
                       className="block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="0.00"
