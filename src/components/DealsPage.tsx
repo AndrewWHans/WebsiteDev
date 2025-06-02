@@ -53,6 +53,7 @@ const CITIES = [
   { name: "Nashville", defaultSrc: "nashville.png", grayscaleSrc: "nashvillebw.png" },
   { name: "Austin", defaultSrc: "austin.png", grayscaleSrc: "austinbw.png" },
   { name: "Jersey Shore", defaultSrc: "jerseyshore.png", grayscaleSrc: "jerseyshorebw.png" },
+  { name: "Mexico City", defaultSrc: "mexicocity.png", grayscaleSrc: "mexicocitybw.png" },
 ];
 
 export const DealsPage = () => {
