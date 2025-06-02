@@ -71,7 +71,7 @@ export const AdminRoutes = () => {
       if (error) throw error;
       
       // Initialize all cities as visible
-      const cities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville'];
+      const cities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City'];
       const initialVisibility: {[key: string]: boolean} = {};
       cities.forEach(city => {
         initialVisibility[city] = true;
