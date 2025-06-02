@@ -669,6 +669,7 @@ export const AdminDeals = () => {
                       <option value="Jersey Shore">Jersey Shore</option>
                       <option value="Austin">Austin</option>
                       <option value="Nashville">Nashville</option>
+                      <option value="Mexico City">Mexico City</option>
                     </select>
                   </div>
                   {errors.city && (
