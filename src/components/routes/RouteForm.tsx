@@ -20,7 +20,7 @@ type RouteFormProps = {
   handleSubmit: any;
 };
 
-const CITIES = ['Miami', 'Tampa', 'Orlando', 'St. Petersburg', 'Austin', 'Nashville', 'Jersey Shore', 'Oaxaca'] as const;
+const CITIES = ['Miami', 'Tampa', 'Orlando', 'St. Petersburg', 'Austin', 'Nashville', 'Jersey Shore', 'Oaxaca', 'Mexico City'] as const;
 
 export const RouteForm = ({
   locations,
