@@ -21,6 +21,7 @@ export const ReferralPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [userReferralCode, setUserReferralCode] = useState<string>(''); // User's own referral code
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -41,6 +42,9 @@ export const ReferralPage = () => {
     // Check if user is already logged in
     supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
       setUser(currentUser);
+      if (currentUser) {
+        fetchUserReferralCode(currentUser.id);
+      }
     });
     
     // Load reward amounts
@@ -114,8 +118,30 @@ export const ReferralPage = () => {
     }
   };
 
+  const fetchUserReferralCode = async (userId: string) => {
+    try {
+      const { data: referralData, error: referralError } = await supabase
+        .from('referral_codes')
+        .select('code')
+        .eq('user_id', userId)
+        .single();
+
+      if (referralError && referralError.code !== 'PGRST116') {
+        throw referralError;
+      }
+
+      if (referralData) {
+        setUserReferralCode(referralData.code);
+      }
+    } catch (err) {
+      console.error('Error fetching user referral code:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyReferralLink = () => {
-    const url = `${window.location.origin}/refer?code=${referralCode}`;
+    const url = `${window.location.origin}/refer?code=${userReferralCode}`;
     navigator.clipboard.writeText(url).then(
       () => {
         setCopySuccess(true);
@@ -133,6 +159,11 @@ export const ReferralPage = () => {
 
   const handleAuthSuccess = (newUser: any) => {
     setUser(newUser);
+    
+    // Fetch the new user's referral code
+    if (newUser) {
+      fetchUserReferralCode(newUser.id);
+    }
     
     // If there was a referral code, navigate to home page
     if (referralCode) {
@@ -340,7 +371,7 @@ export const ReferralPage = () => {
                   <div className="relative mb-6">
                     <input
                       type="text"
-                      value={referralCode || 'Loading...'}
+                      value={userReferralCode || 'Loading...'}
                       readOnly
                       className="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-3 px-4 text-center font-mono text-xl text-white"
                     />
@@ -362,11 +393,11 @@ export const ReferralPage = () => {
                   <button 
                     className="w-full bg-gold hover:bg-yellow-400 text-black font-bold py-3 rounded-lg transition-colors flex items-center justify-center"
                     onClick={() => {
-                      const url = `${window.location.origin}/refer?code=${referralCode}`;
+                      const url = `${window.location.origin}/refer?code=${userReferralCode}`;
                       if (navigator.share) {
                         navigator.share({
                           title: 'Join me on ULimo!',
-                          text: `Use my referral code ${referralCode} to sign up for ULimo and get ${signupBonus} miles!`,
+                          text: `Use my referral code ${userReferralCode} to sign up for ULimo and get ${signupBonus} miles!`,
                           url: url
                         }).catch(err => {
                           console.error('Error sharing:', err);
