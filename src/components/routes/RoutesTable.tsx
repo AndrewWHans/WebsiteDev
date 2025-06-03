@@ -20,34 +20,51 @@ export const RoutesTable = ({ routes, locations, onEdit, onDelete, onViewDetails
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [dateGroups, setDateGroups] = useState<{[key: string]: Route[]}>({});
+  const [dateGroups, setDateGroups] = useState<{[key: string]: {[key: string]: Route[]}}>({});
+  const [activeCityTabs, setActiveCityTabs] = useState<{[key: string]: string}>({});
   const [showPastRoutes, setShowPastRoutes] = useState(false);
   
   // Group and sort routes
   useEffect(() => {
-    // Group routes by date
-    const groupedByDate = routes.reduce((groups: {[key: string]: Route[]}, route) => {
+    // Group routes by date, then by city
+    const groupedByDateAndCity = routes.reduce((groups: {[key: string]: {[key: string]: Route[]}}, route) => {
       const date = route.date;
+      const city = route.city || 'Unknown City';
+      
       if (!groups[date]) {
-        groups[date] = [];
+        groups[date] = {};
       }
-      groups[date].push(route);
+      if (!groups[date][city]) {
+        groups[date][city] = [];
+      }
+      groups[date][city].push(route);
       return groups;
     }, {});
 
     // Sort the dates
-    const sortedDateGroups: {[key: string]: Route[]} = {};
-    Object.keys(groupedByDate)
+    const sortedDateGroups: {[key: string]: {[key: string]: Route[]}} = {};
+    Object.keys(groupedByDateAndCity)
       .sort((a, b) => {
         return new Date(a).getTime() - new Date(b).getTime();
       })
       .forEach(date => {
-        sortedDateGroups[date] = groupedByDate[date];
+        sortedDateGroups[date] = groupedByDateAndCity[date];
       });
 
-    // Set all dates as expanded initially
-    setExpandedDates(new Set(Object.keys(sortedDateGroups)));
+    // Set all dates as expanded initially and set first city as active for each date
+    const newExpandedDates = new Set(Object.keys(sortedDateGroups));
+    const newActiveCityTabs: {[key: string]: string} = {};
+    
+    Object.keys(sortedDateGroups).forEach(date => {
+      const cities = Object.keys(sortedDateGroups[date]);
+      if (cities.length > 0) {
+        newActiveCityTabs[date] = cities[0];
+      }
+    });
+    
+    setExpandedDates(newExpandedDates);
     setDateGroups(sortedDateGroups);
+    setActiveCityTabs(newActiveCityTabs);
   }, [routes]);
   
   useEffect(() => {
@@ -63,7 +80,7 @@ export const RoutesTable = ({ routes, locations, onEdit, onDelete, onViewDetails
           .in('status', ['confirmed', 'completed']);
           
         if (!error && data) {
-          counts[route.id] = data.reduce((sum, booking) => sum + booking.quantity, 0);
+          counts[route.id] = data.reduce((sum: number, booking: any) => sum + booking.quantity, 0);
         } else {
           counts[route.id] = 0;
         }
@@ -94,6 +111,13 @@ export const RoutesTable = ({ routes, locations, onEdit, onDelete, onViewDetails
       newExpandedDates.add(date);
     }
     setExpandedDates(newExpandedDates);
+  };
+
+  const setActiveCityTab = (date: string, city: string) => {
+    setActiveCityTabs((prev: {[key: string]: string}) => ({
+      ...prev,
+      [date]: city
+    }));
   };
 
   const sortRoutes = (routes: Route[]) => {
@@ -213,224 +237,224 @@ export const RoutesTable = ({ routes, locations, onEdit, onDelete, onViewDetails
                 </p>
               </div>
             ) : (
-              filteredDateGroups.map(([date, dateRoutes]) => (
-              <div key={date} className="mb-4">
-                <div 
-                  className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 cursor-pointer"
-                  onClick={() => toggleDateExpansion(date)}
-                >
-                  <div className="flex items-center space-x-2">
-                    {expandedDates.has(date) ? (
-                      <ChevronDown className="h-5 w-5 text-gray-500" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-500" />
-                    )}
-                    <h2 className="text-lg font-medium text-gray-900">{formatDate(date)}</h2>
-                    <span className="text-sm text-gray-500">({dateRoutes.length} routes)</span>
-                    {isPastRoute(date) && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Past
-                      </span>
-                    )}
-                  </div>
-                </div>
+              filteredDateGroups.map(([date, cityGroups]) => {
+                const cities = Object.keys(cityGroups);
+                const activeCity = activeCityTabs[date] || cities[0];
+                const totalRoutes = Object.values(cityGroups).reduce((sum, routes) => sum + routes.length, 0);
                 
-                {expandedDates.has(date) && (
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('city')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>City</span>
-                            {sortField === 'city' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('date')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Date</span>
-                            {sortField === 'date' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('pickup')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Pickup Location</span>
-                            {sortField === 'pickup' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('dropoff')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Dropoff Location</span>
-                            {sortField === 'dropoff' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('time')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Time</span>
-                            {sortField === 'time' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('price')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Price</span>
-                            {sortField === 'price' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('capacity')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Capacity</span>
-                            {sortField === 'capacity' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          scope="col" 
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                          onClick={() => handleSort('tickets')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Active Tickets</span>
-                            {sortField === 'tickets' && (
-                              sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            )}
-                          </div>
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                          <span className="sr-only">Actions</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {sortRoutes(dateRoutes).map((route) => (
-                        <tr key={route.id} className="hover:bg-gray-50">
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {route.city}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {new Date(route.date + 'T12:00:00').toLocaleDateString()}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {locations.find(loc => loc.id === route.pickup_location)?.name || route.pickup_location}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {locations.find(loc => loc.id === route.dropoff_location)?.name || route.dropoff_location}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {route.time_slots.map(time => 
-                              new Date(`1970-01-01T${time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            ).join(', ')}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            ${route.price.toFixed(2)}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {route.min_threshold}-{route.max_capacity_per_slot}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                            {ticketCounts[route.id] || 0}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm">
-                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                              route.status === 'active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {route.status}
-                            </span>
-                          </td>
-                          <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                return (
+                <div key={date} className="mb-4">
+                  <div 
+                    className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 cursor-pointer"
+                    onClick={() => toggleDateExpansion(date)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      {expandedDates.has(date) ? (
+                        <ChevronDown className="h-5 w-5 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-gray-500" />
+                      )}
+                      <h2 className="text-lg font-medium text-gray-900">{formatDate(date)}</h2>
+                      <span className="text-sm text-gray-500">({totalRoutes} routes in {cities.length} {cities.length === 1 ? 'city' : 'cities'})</span>
+                      {isPastRoute(date) && (
+                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          Past
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {expandedDates.has(date) && (
+                    <div className="bg-white">
+                      {/* City Tabs */}
+                      <div className="border-b border-gray-200">
+                        <nav className="-mb-px flex space-x-8 px-4" aria-label="Cities">
+                          {cities.map((city) => (
                             <button
-                              onClick={() => onViewDetails(route.id)}
-                              className="text-indigo-600 hover:text-indigo-900 mr-4"
-                              title="View Details"
+                              key={city}
+                              onClick={() => setActiveCityTab(date, city)}
+                              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                                activeCity === city
+                                  ? 'border-indigo-500 text-indigo-600'
+                                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              }`}
                             >
-                              <Eye className="w-4 h-4" />
+                              {city}
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {cityGroups[city].length}
+                              </span>
                             </button>
-                            {!showPastRoutes && (
-                            <button
-                              onClick={() => onEdit(route)}
-                              className="text-indigo-600 hover:text-indigo-900 mr-4"
-                              title="Edit Route"
+                          ))}
+                        </nav>
+                      </div>
+
+                      {/* Routes Table for Active City */}
+                      <table className="min-w-full divide-y divide-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('pickup')}
                             >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            )}
-                            {!showPastRoutes && (
-                            <button
-                              onClick={() => onDelete(route.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete Route"
+                              <div className="flex items-center space-x-1">
+                                <span>Pickup Location</span>
+                                {sortField === 'pickup' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('dropoff')}
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            )}
-                            {!showPastRoutes && isPastRoute(route.date) && onArchive && (
-                              <button
-                                onClick={() => onArchive(route.id, 'archived')}
-                                className="text-gray-600 hover:text-gray-900 ml-4"
-                                title="Archive Route"
-                              >
-                                <Archive className="w-4 h-4" />
-                              </button>
-                            )}
-                            {showPastRoutes && route.status === 'archived' && onArchive && (
-                              <button
-                                onClick={() => onArchive(route.id, 'active')}
-                                className="text-green-600 hover:text-green-900 ml-4"
-                                title="Restore Route"
-                              >
-                                <Clock className="w-4 h-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )))}
+                              <div className="flex items-center space-x-1">
+                                <span>Dropoff Location</span>
+                                {sortField === 'dropoff' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('time')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Time</span>
+                                {sortField === 'time' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('price')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Price</span>
+                                {sortField === 'price' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('capacity')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Capacity</span>
+                                {sortField === 'capacity' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th 
+                              scope="col" 
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
+                              onClick={() => handleSort('tickets')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Active Tickets</span>
+                                {sortField === 'tickets' && (
+                                  sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                            <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                              <span className="sr-only">Actions</span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {sortRoutes(cityGroups[activeCity] || []).map((route) => (
+                            <tr key={route.id} className="hover:bg-gray-50">
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                {locations.find(loc => loc.id === route.pickup_location)?.name || route.pickup_location}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                {locations.find(loc => loc.id === route.dropoff_location)?.name || route.dropoff_location}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                {route.time_slots.map((time: string) => 
+                                  new Date(`1970-01-01T${time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                ).join(', ')}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                ${route.price.toFixed(2)}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                {route.min_threshold}-{route.max_capacity_per_slot}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                                {ticketCounts[route.id] || 0}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                                  route.status === 'active' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {route.status}
+                                </span>
+                              </td>
+                              <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                <button
+                                  onClick={() => onViewDetails(route.id)}
+                                  className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                {!showPastRoutes && (
+                                <button
+                                  onClick={() => onEdit(route)}
+                                  className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                  title="Edit Route"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                )}
+                                {!showPastRoutes && (
+                                <button
+                                  onClick={() => onDelete(route.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Delete Route"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                )}
+                                {!showPastRoutes && isPastRoute(route.date) && onArchive && (
+                                  <button
+                                    onClick={() => onArchive(route.id, 'archived')}
+                                    className="text-gray-600 hover:text-gray-900 ml-4"
+                                    title="Archive Route"
+                                  >
+                                    <Archive className="w-4 h-4" />
+                                  </button>
+                                )}
+                                {showPastRoutes && route.status === 'archived' && onArchive && (
+                                  <button
+                                    onClick={() => onArchive(route.id, 'active')}
+                                    className="text-green-600 hover:text-green-900 ml-4"
+                                    title="Restore Route"
+                                  >
+                                    <Clock className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}))}
           </div>
         </div>
       </div>
