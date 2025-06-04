@@ -52,7 +52,7 @@ export const DealCard: React.FC<DealCardProps> = ({
         <div className="absolute bottom-0 left-0 p-4 z-20">
           <div className="flex items-center space-x-2">
             <span className="bg-gold text-black text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
-              ${deal.price.toFixed(2)}
+              {deal.price === 0 ? 'FREE' : `$${deal.price.toFixed(2)}`}
             </span>
           </div>
         </div>
@@ -66,19 +66,21 @@ export const DealCard: React.FC<DealCardProps> = ({
         
         {/* Deal Description as bullet points */}
         <div className="mb-1.5">
-          <ul className="space-y-0.5">
-            {deal.description.split('\n').filter(line => line.trim()).slice(0, 2).map((item, index) => (
-              <li key={index} className="flex items-start text-[10px] sm:text-xs">
-                <Star className="w-2 h-2 text-gold mr-1 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-400 line-clamp-1">{item.trim()}</span>
-              </li>
-            ))}
-            {deal.description.split('\n').filter(line => line.trim()).length > 2 && (
-              <li className="text-[10px] sm:text-xs text-gray-500 italic">
-                +{deal.description.split('\n').filter(line => line.trim()).length - 2} more...
-              </li>
-            )}
-          </ul>
+          {(() => {
+            const items = deal.description.split('\n').filter(line => line.trim());
+            const useMultiColumn = items.length >= 4;
+            
+            return (
+              <ul className={`space-y-0.5 ${useMultiColumn ? 'grid grid-cols-2 gap-x-2 gap-y-0.5' : ''}`}>
+                {items.map((item, index) => (
+                  <li key={index} className="flex items-start text-[10px] sm:text-xs">
+                    <Star className="w-2 h-2 text-gold mr-1 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-400 line-clamp-1">{item.trim()}</span>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
         </div>
         
         {/* Deal Details */}
