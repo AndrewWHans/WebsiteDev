@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { MapPin, Calendar, ArrowRight, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export type Deal = {
@@ -63,9 +63,23 @@ export const DealCard: React.FC<DealCardProps> = ({
         <h3 className="text-sm sm:text-base font-bold text-white mb-0.5 group-hover:text-gold transition-colors line-clamp-1">
           {deal.title}
         </h3>
-        <p className="text-gray-400 text-[10px] sm:text-xs mb-1.5 line-clamp-2">
-          {deal.description}
-        </p>
+        
+        {/* Deal Description as bullet points */}
+        <div className="mb-1.5">
+          <ul className="space-y-0.5">
+            {deal.description.split('\n').filter(line => line.trim()).slice(0, 2).map((item, index) => (
+              <li key={index} className="flex items-start text-[10px] sm:text-xs">
+                <Star className="w-2 h-2 text-gold mr-1 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-400 line-clamp-1">{item.trim()}</span>
+              </li>
+            ))}
+            {deal.description.split('\n').filter(line => line.trim()).length > 2 && (
+              <li className="text-[10px] sm:text-xs text-gray-500 italic">
+                +{deal.description.split('\n').filter(line => line.trim()).length - 2} more...
+              </li>
+            )}
+          </ul>
+        </div>
         
         {/* Deal Details */}
         <div className="space-y-0.5 mb-2">
