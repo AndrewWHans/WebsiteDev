@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Archive, MapPin, Check, X } from 'lucide-react';
+import { Loader2, Plus, Archive, MapPin, Check, X, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../../lib/supabase';
 import { Route, Location, RouteFormData } from '../../types/route.types';
@@ -24,6 +24,8 @@ export const AdminRoutes = () => {
   const [cityVisibility, setCityVisibility] = useState<{[key: string]: boolean}>({});
   const [showCityModal, setShowCityModal] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [cityOrder, setCityOrder] = useState<string[]>([]);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<RouteFormData>();
 
@@ -31,6 +33,7 @@ export const AdminRoutes = () => {
     loadRoutes();
     loadLocations();
     loadCityVisibility();
+    loadCityOrder();
   }, []);
 
   useEffect(() => {
@@ -128,6 +131,77 @@ export const AdminRoutes = () => {
       ...prev,
       [city]: !prev[city]
     }));
+  };
+
+  const loadCityOrder = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'city_order')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      // If we have a custom order, use it
+      if (data && data.value) {
+        try {
+          const customOrder = JSON.parse(data.value);
+          if (Array.isArray(customOrder)) {
+            setCityOrder(customOrder);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing city order:', e);
+        }
+      }
+      
+      // Default order if no custom order found
+      const defaultOrder = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      setCityOrder(defaultOrder);
+    } catch (err) {
+      console.error('Error loading city order:', err);
+      // Default order on error
+      setCityOrder(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City']);
+    }
+  };
+
+  const saveCityOrder = async () => {
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'city_order',
+          value: JSON.stringify(cityOrder),
+          description: 'Custom order for displaying cities'
+        });
+
+      if (error) throw error;
+      
+      setSuccess('City order saved successfully');
+      setShowOrderModal(false);
+    } catch (err) {
+      console.error('Error saving city order:', err);
+      setError('Failed to save city order');
+    }
+  };
+
+  const moveCityUp = (index: number) => {
+    if (index > 0) {
+      const newOrder = [...cityOrder];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      setCityOrder(newOrder);
+    }
+  };
+
+  const moveCityDown = (index: number) => {
+    if (index < cityOrder.length - 1) {
+      const newOrder = [...cityOrder];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      setCityOrder(newOrder);
+    }
   };
 
   const loadRoutes = async () => {
@@ -300,6 +374,13 @@ export const AdminRoutes = () => {
             Manage Cities
           </button>
           <button
+            onClick={() => setShowOrderModal(true)}
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+          >
+            <GripVertical className="w-4 h-4 mr-2" />
+            City Order
+          </button>
+          <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
           >
@@ -431,6 +512,76 @@ export const AdminRoutes = () => {
           onClose={() => setSelectedRouteId(null)}
           onArchive={handleArchiveRoute}
         />
+      )}
+
+      {/* City Order Modal */}
+      {showOrderModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Manage City Order</h3>
+              <button onClick={() => setShowOrderModal(false)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-500" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-500 mb-4">
+              Drag cities to reorder them or use the arrow buttons. This order will be used on the shuttles and deals pages.
+            </p>
+            
+            <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
+              {cityOrder.map((city, index) => (
+                <div key={city} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <GripVertical className="w-5 h-5 text-gray-400 mr-2" />
+                    <span className="font-medium">{city}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => moveCityUp(index)}
+                      disabled={index === 0}
+                      className={`p-1 rounded ${
+                        index === 0 
+                          ? 'text-gray-300 cursor-not-allowed' 
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                      }`}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => moveCityDown(index)}
+                      disabled={index === cityOrder.length - 1}
+                      className={`p-1 rounded ${
+                        index === cityOrder.length - 1 
+                          ? 'text-gray-300 cursor-not-allowed' 
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                      }`}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowOrderModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveCityOrder}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Save Order
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
