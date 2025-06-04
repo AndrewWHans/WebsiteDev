@@ -60,7 +60,7 @@ export function HeroSection({ user, onSignIn }: HeroSectionProps) {
                 </svg>
               </div>
               <span className="bg-gold/90 text-black text-xs font-bold px-3 py-1 rounded-full">
-                {user ? 'AVAILABLE' : 'SIGN IN REQUIRED'}
+                AVAILABLE
               </span>
             </div>
             <h3 className="text-xl font-bold mb-2">Private Ride</h3>
@@ -68,18 +68,10 @@ export function HeroSection({ user, onSignIn }: HeroSectionProps) {
               Charter the entire bus for your group. Perfect for special events.
             </p>
             <button 
-              className={`w-full ${
-                user 
-                  ? 'bg-gold hover:bg-yellow-400 text-black' 
-                  : 'bg-gray-800 text-gray-300'
-              } font-bold py-3 rounded-lg flex items-center justify-center transition-colors`}
-              onClick={() => user ? navigate('/private-ride') : onSignIn()}
+              className="w-full bg-gold hover:bg-yellow-400 text-black font-bold py-3 rounded-lg flex items-center justify-center transition-colors"
+              onClick={() => navigate('/private-ride')}
             >
-              {user ? (
-                <>Book Now <ChevronRight size={16} className="ml-1" /></>
-              ) : (
-                'Sign In to Book'
-              )}
+              Book Now <ChevronRight size={16} className="ml-1" />
             </button>
           </div>
 
