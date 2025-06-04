@@ -380,14 +380,6 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
             {deal.price === 0 ? 'FREE' : `$${deal.price.toFixed(2)}`}
           </div>
           
-          {/* Description */}
-          <div className="mb-6">
-            <h3 className="text-base font-semibold text-white mb-2">About This Deal</h3>
-            <p className="text-gray-300 whitespace-pre-line">
-              {deal.description}
-            </p>
-          </div>
-          
           {/* Details */}
           <div className="bg-black/30 rounded-xl p-3 mb-4 border border-gold/20">
             <h3 className="text-base font-semibold text-white mb-2">Details</h3>
@@ -424,26 +416,16 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
             </div>
           </div>
           
-          {/* Benefits */}
+          {/* What's Included - Using deal description */}
           <div className="mb-4">
             <h3 className="text-base font-semibold text-white mb-2">What's Included</h3>
             <ul className="space-y-1.5">
-              <li className="flex items-start">
-                <Star className="w-4 h-4 text-gold mr-2 mt-1" />
-                <span className="text-gray-300 text-sm">Skip the line entry</span>
-              </li>
-              <li className="flex items-start">
-                <Star className="w-4 h-4 text-gold mr-2 mt-1" />
-                <span className="text-gray-300 text-sm">Special ULimo customer perks</span>
-              </li>
-              <li className="flex items-start">
-                <Star className="w-4 h-4 text-gold mr-2 mt-1" />
-                <span className="text-gray-300 text-sm">Exclusive access to VIP areas</span>
-              </li>
-              <li className="flex items-start">
-                <Users className="w-4 h-4 text-gold mr-2 mt-1" />
-                <span className="text-gray-300 text-sm">Valid for one person</span>
-              </li>
+              {deal.description.split('\n').filter(line => line.trim()).map((item, index) => (
+                <li key={index} className="flex items-start">
+                  <Star className="w-4 h-4 text-gold mr-2 mt-1 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm">{item.trim()}</span>
+                </li>
+              ))}
             </ul>
           </div>
           
