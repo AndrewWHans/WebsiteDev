@@ -44,18 +44,6 @@ type Deal = {
   city?: string;
 };
 
-const CITIES = [
-  { name: "Tampa", defaultSrc: "tampa.png", grayscaleSrc: "tampabw.png" },
-  { name: "St. Petersburg", defaultSrc: "stpete.png", grayscaleSrc: "stpetebw.png" },
-  { name: "Oaxaca", defaultSrc: "oaxaca.png", grayscaleSrc: "oaxacabw.png" },
-  { name: "Orlando", defaultSrc: "orlando.png", grayscaleSrc: "orlandobw.png" },
-  { name: "Miami", defaultSrc: "miami.png", grayscaleSrc: "miamibw.png" },
-  { name: "Nashville", defaultSrc: "nashville.png", grayscaleSrc: "nashvillebw.png" },
-  { name: "Austin", defaultSrc: "austin.png", grayscaleSrc: "austinbw.png" },
-  { name: "Jersey Shore", defaultSrc: "jerseyshore.png", grayscaleSrc: "jerseyshorebw.png" },
-  { name: "Mexico City", defaultSrc: "MexicoCity.png", grayscaleSrc: "MexicoCitybw.png" },
-];
-
 export const DealsPage = () => {
   const navigate = useNavigate();
   const [showInstagramOptions, setShowInstagramOptions] = useState(false);
@@ -73,6 +61,62 @@ export const DealsPage = () => {
   const [featuredDeal, setFeaturedDeal] = useState<Deal | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [cities, setCities] = useState<Array<{name: string, defaultSrc: string, grayscaleSrc: string}>>([]);
+
+  const loadCityOrder = async () => {
+    try {
+      // Get the custom city order from system settings
+      const { data: orderData, error: orderError } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'city_order')
+        .single();
+
+      // Default order if no custom order found
+      let orderedCityNames = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      
+      // If we have a custom order, use it
+      if (orderData && orderData.value) {
+        try {
+          const customOrder = JSON.parse(orderData.value);
+          if (Array.isArray(customOrder)) {
+            orderedCityNames = customOrder;
+          }
+        } catch (e) {
+          console.error('Error parsing city order:', e);
+        }
+      }
+
+      // Create city objects with image sources in the custom order
+      const orderedCities = orderedCityNames.map(cityName => ({
+        name: cityName,
+        defaultSrc: cityName === "St. Petersburg" ? "stpete.png" : 
+                    cityName === "Jersey Shore" ? "jerseyshore.png" : 
+                    cityName === "Mexico City" ? "MexicoCity.png" :
+                    `${cityName.toLowerCase()}.png`,
+        grayscaleSrc: cityName === "St. Petersburg" ? "stpetebw.png" : 
+                      cityName === "Jersey Shore" ? "jerseyshorebw.png" : 
+                      cityName === "Mexico City" ? "MexicoCitybw.png" :
+                      `${cityName.toLowerCase()}bw.png`
+      }));
+
+      setCities(orderedCities);
+    } catch (err) {
+      console.error('Error loading city order:', err);
+      // Default cities if there's an error
+      setCities([
+        { name: "Tampa", defaultSrc: "tampa.png", grayscaleSrc: "tampabw.png" },
+        { name: "St. Petersburg", defaultSrc: "stpete.png", grayscaleSrc: "stpetebw.png" },
+        { name: "Orlando", defaultSrc: "orlando.png", grayscaleSrc: "orlandobw.png" },
+        { name: "Miami", defaultSrc: "miami.png", grayscaleSrc: "miamibw.png" },
+        { name: "Nashville", defaultSrc: "nashville.png", grayscaleSrc: "nashvillebw.png" },
+        { name: "Austin", defaultSrc: "austin.png", grayscaleSrc: "austinbw.png" },
+        { name: "Jersey Shore", defaultSrc: "jerseyshore.png", grayscaleSrc: "jerseyshorebw.png" },
+        { name: "Oaxaca", defaultSrc: "oaxaca.png", grayscaleSrc: "oaxacabw.png" },
+        { name: "Mexico City", defaultSrc: "MexicoCity.png", grayscaleSrc: "MexicoCitybw.png" },
+      ]);
+    }
+  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -80,6 +124,7 @@ export const DealsPage = () => {
       setUser(currentUser);
     });
     
+    loadCityOrder();
     loadDeals();
   }, [selectedCity]);
   
@@ -283,7 +328,7 @@ export const DealsPage = () => {
             
             {/* City Selection Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {CITIES.map((city) => (
+              {cities.map((city) => (
                 <button
                   key={city.name}
                   onClick={() => handleCityClick(city.name)}
