@@ -18,7 +18,7 @@ import { supabase, formatToEST, formatTimeToEST, parseAndFormatDate } from '../l
 
 type PrivateRequest = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   phone_number: string;
   pickup_date: string;
   pickup_time: string;
@@ -30,12 +30,17 @@ type PrivateRequest = {
   notes: string | null;
   status: string;
   created_at: string;
+  // Fields for anonymous users
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  // User profile data (for authenticated users)
   user: {
     email: string;
     name: string;
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null;
 };
 
 export const AdminPrivateRequests = () => {
@@ -172,6 +177,37 @@ export const AdminPrivateRequests = () => {
     }
   };
 
+  // Helper function to get customer name
+  const getCustomerName = (request: PrivateRequest) => {
+    if (request.user_id && request.user) {
+      // Authenticated user
+      return request.user.first_name && request.user.last_name
+        ? `${request.user.first_name} ${request.user.last_name}`
+        : request.user.name || 'Unknown User';
+    } else {
+      // Anonymous user
+      return request.first_name && request.last_name
+        ? `${request.first_name} ${request.last_name}`
+        : 'Anonymous User';
+    }
+  };
+
+  // Helper function to get customer email
+  const getCustomerEmail = (request: PrivateRequest) => {
+    if (request.user_id && request.user) {
+      // Authenticated user
+      return request.user.email;
+    } else {
+      // Anonymous user
+      return request.email || 'No email provided';
+    }
+  };
+
+  // Helper function to get customer type
+  const getCustomerType = (request: PrivateRequest) => {
+    return request.user_id ? 'Registered' : 'Guest';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -234,11 +270,12 @@ export const AdminPrivateRequests = () => {
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
                         <div className="font-medium text-gray-900">
-                          {request.user.first_name && request.user.last_name
-                            ? `${request.user.first_name} ${request.user.last_name}`
-                            : request.user.name}
+                          {getCustomerName(request)}
                         </div>
-                        <div className="text-gray-500">{request.user.email}</div>
+                        <div className="text-gray-500">{getCustomerEmail(request)}</div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {getCustomerType(request)}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <div className="font-medium text-gray-900">
@@ -318,18 +355,28 @@ export const AdminPrivateRequests = () => {
                     <div>
                       <p className="text-sm text-gray-500">Name</p>
                       <p className="font-medium">
-                        {selectedRequest.user.first_name && selectedRequest.user.last_name
-                          ? `${selectedRequest.user.first_name} ${selectedRequest.user.last_name}`
-                          : selectedRequest.user.name}
+                        {getCustomerName(selectedRequest)}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{selectedRequest.user.email}</p>
+                      <p className="font-medium">{getCustomerEmail(selectedRequest)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Phone</p>
                       <p className="font-medium">{selectedRequest.phone_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Customer Type</p>
+                      <p className="font-medium">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          selectedRequest.user_id 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {getCustomerType(selectedRequest)}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 </div>
