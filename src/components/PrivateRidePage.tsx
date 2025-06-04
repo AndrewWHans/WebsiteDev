@@ -17,7 +17,9 @@ import {
   CheckCircle,
   Loader2,
   ChevronDown,
-  Check
+  Check,
+  Mail,
+  User
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -29,6 +31,10 @@ type FormData = {
   dropoffLocation: string;
   passengers: number;
   notes: string;
+  // Fields for anonymous users
+  firstName: string;
+  lastName: string;
+  email: string;
 };
 
 const POPULAR_COUNTRIES = [
@@ -40,6 +46,7 @@ const POPULAR_COUNTRIES = [
 export const PrivateRidePage = () => {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedReturnDate, setSelectedReturnDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
@@ -54,7 +61,10 @@ export const PrivateRidePage = () => {
     defaultValues: {
       tripType: 'one-way',
       countryCode: POPULAR_COUNTRIES[0].code,
-      phone: ''
+      phone: '',
+      firstName: '',
+      lastName: '',
+      email: ''
     }
   });
 
@@ -65,15 +75,21 @@ export const PrivateRidePage = () => {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
+          setIsAuthenticated(true);
           const { data: profile, error } = await supabase
             .from('profiles')
-            .select('phone_number, first_name, last_name')
+            .select('phone_number, first_name, last_name, email')
             .eq('id', user.id)
             .single();
 
           if (error) throw error;
           
           setUserProfile(profile);
+          
+          // Pre-fill form with user data
+          if (profile?.first_name) setValue('firstName', profile.first_name);
+          if (profile?.last_name) setValue('lastName', profile.last_name);
+          if (user.email) setValue('email', user.email);
           
           // If user has a phone number, parse and set it in the form
           if (profile?.phone_number) {
@@ -96,9 +112,12 @@ export const PrivateRidePage = () => {
               console.error('Error parsing phone number:', err);
             }
           }
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
+        setIsAuthenticated(false);
       }
     };
 
@@ -148,10 +167,6 @@ export const PrivateRidePage = () => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Please sign in to submit a booking request');
-      }
 
       // Format date and time
       const formattedDate = selectedDate.toISOString().split('T')[0];
@@ -177,23 +192,34 @@ export const PrivateRidePage = () => {
       const fullNumber = `${selectedCountry.dial}${data.phone.replace(/[^\d]/g, '')}`;
       const phoneNumber = parsePhoneNumber(fullNumber, selectedCountry.code as CountryCode);
 
+      // Prepare the request data
+      const requestData: any = {
+        phone_number: phoneNumber.format('E.164'),
+        pickup_date: formattedDate,
+        pickup_time: formattedTime,
+        return_date: formattedReturnDate,
+        return_time: formattedReturnTime,
+        trip_type: data.tripType,
+        pickup_location: data.pickupLocation,
+        dropoff_location: data.dropoffLocation,
+        passengers: data.passengers,
+        notes: data.notes,
+        status: 'pending'
+      };
+
+      // Add user-specific or anonymous-specific fields
+      if (user) {
+        requestData.user_id = user.id;
+      } else {
+        requestData.first_name = data.firstName;
+        requestData.last_name = data.lastName;
+        requestData.email = data.email;
+      }
+
       // Submit booking request
       const { error: submitError } = await supabase
         .from('private_ride_requests')
-        .insert([{
-          user_id: user.id,
-          phone_number: phoneNumber.format('E.164'),
-          pickup_date: formattedDate,
-          pickup_time: formattedTime,
-          return_date: formattedReturnDate,
-          return_time: formattedReturnTime,
-          trip_type: data.tripType,
-          pickup_location: data.pickupLocation,
-          dropoff_location: data.dropoffLocation,
-          passengers: data.passengers,
-          notes: data.notes,
-          status: 'pending'
-        }]);
+        .insert([requestData]);
 
       if (submitError) throw submitError;
 
@@ -212,6 +238,15 @@ export const PrivateRidePage = () => {
     }
   };
 
+  // Show loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4">
@@ -226,6 +261,27 @@ export const PrivateRidePage = () => {
             </button>
             <h1 className="text-3xl font-bold text-gold">Private Ride Booking</h1>
           </div>
+
+          {/* Info Banner for Anonymous Users */}
+          {!isAuthenticated && (
+            <div className="bg-blue-900/30 border border-blue-500/50 rounded-xl p-4 mb-8">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-200">
+                    Booking as Guest
+                  </h3>
+                  <div className="mt-1 text-sm text-blue-300">
+                    <p>You're submitting a request as a guest. We'll contact you via the provided email and phone number with booking details.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Success Message */}
           {success && (
@@ -248,249 +304,328 @@ export const PrivateRidePage = () => {
           {/* Booking Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="bg-gray-900 rounded-xl border border-gold/30 overflow-hidden">
             <div className="p-6 space-y-6">
-              {/* Contact Phone */}
-              <div>
-                <label className="block text-white mb-2 font-medium">
-                  Contact Phone Number
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowCountrySelector(!showCountrySelector)}
-                      className="h-full px-3 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2 hover:bg-gray-700 transition-colors min-w-[100px]"
-                    >
-                      <span>{selectedCountry.dial}</span>
-                      <ChevronDown size={16} className={`transition-transform ${showCountrySelector ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {showCountrySelector && (
-                      <div className="absolute z-50 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
-                        <div className="py-1 max-h-48 overflow-y-auto">
-                          {POPULAR_COUNTRIES.map((country) => (
-                            <button
-                              key={country.code}
-                              type="button"
-                              className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center justify-between"
-                              onClick={() => {
-                                setSelectedCountry(country);
-                                setValue('countryCode', country.code);
-                                setShowCountrySelector(false);
-                              }}
-                            >
-                              <span>{country.name}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400">{country.dial}</span>
-                                {selectedCountry.code === country.code && (
-                                  <Check size={16} className="text-gold" />
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+              {/* Contact Information Section */}
+              <div className="border-b border-gray-800 pb-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Contact Information</h3>
+                
+                {/* Name Fields (for anonymous users or editable for authenticated users) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-white mb-2 font-medium">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
                       </div>
+                      <input
+                        type="text"
+                        {...register('firstName', { required: 'First name is required' })}
+                        className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                        placeholder="Enter your first name"
+                      />
+                    </div>
+                    {errors.firstName && (
+                      <p className="mt-1 text-red-400 text-sm">{errors.firstName.message}</p>
                     )}
                   </div>
-                  
-                  <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
-                    </div>
-                  <input
-                    type="tel"
-                    {...register('phone', { validate: validatePhoneNumber })}
-                    className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                    placeholder="(555) 555-5555"
-                   defaultValue={userProfile?.phone_number ? parsePhoneNumber(userProfile.phone_number).nationalNumber : ''}
-                  />
-                </div>
-                </div>
-                {errors.phone && (
-                  <p className="mt-1 text-red-400 text-sm">{errors.phone.message}</p>
-                )}
-              </div>
 
-              {/* Date and Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-white mb-2 font-medium">
-                    Pickup Date
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <DatePicker
-                      selected={selectedDate}
-                      onChange={(date) => setSelectedDate(date)}
-                      minDate={new Date()}
-                      dateFormat="MM/dd/yyyy"
-                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                      placeholderText="Select date"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-white mb-2 font-medium">
-                    Pickup Time
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <DatePicker
-                      selected={selectedTime}
-                      onChange={(time) => setSelectedTime(time)}
-                      showTimeSelect
-                      showTimeSelectOnly
-                      timeIntervals={30}
-                      timeCaption="Time"
-                      dateFormat="h:mm aa"
-                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                      placeholderText="Select time"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Trip Type Selection */}
-              <div className="mb-6">
-                <label className="block text-white mb-2 font-medium">
-                  Trip Type
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <label 
-                    className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                      tripType === 'one-way' 
-                        ? 'bg-gold/20 border-gold text-white' 
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value="one-way"
-                      {...register('tripType')}
-                      className="sr-only"
-                    />
-                    <ArrowRight className="w-5 h-5 mr-2" />
-                    <span>One Way</span>
-                  </label>
-                  
-                  <label 
-                    className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                      tripType === 'round-trip' 
-                        ? 'bg-gold/20 border-gold text-white' 
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      value="round-trip"
-                      {...register('tripType')}
-                      className="sr-only"
-                    />
-                    <Repeat className="w-5 h-5 mr-2" />
-                    <span>Round Trip</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Return Date and Time (only for round trip) */}
-              {tripType === 'round-trip' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 p-4 bg-gold/5 rounded-lg border border-gold/20">
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block text-white mb-2 font-medium">
-                      Return Time
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        {...register('lastName', { required: 'Last name is required' })}
+                        className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                        placeholder="Enter your last name"
+                      />
+                    </div>
+                    {errors.lastName && (
+                      <p className="mt-1 text-red-400 text-sm">{errors.lastName.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email Field */}
+                <div className="mb-4">
+                  <label className="block text-white mb-2 font-medium">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      {...register('email', { 
+                        required: 'Email is required',
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: 'Invalid email address'
+                        }
+                      })}
+                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                      placeholder="Enter your email address"
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="mt-1 text-red-400 text-sm">{errors.email.message}</p>
+                  )}
+                </div>
+
+                {/* Contact Phone */}
+                <div>
+                  <label className="block text-white mb-2 font-medium">
+                    Contact Phone Number
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowCountrySelector(!showCountrySelector)}
+                        className="h-full px-3 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2 hover:bg-gray-700 transition-colors min-w-[100px]"
+                      >
+                        <span>{selectedCountry.dial}</span>
+                        <ChevronDown size={16} className={`transition-transform ${showCountrySelector ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showCountrySelector && (
+                        <div className="absolute z-50 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
+                          <div className="py-1 max-h-48 overflow-y-auto">
+                            {POPULAR_COUNTRIES.map((country) => (
+                              <button
+                                key={country.code}
+                                type="button"
+                                className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center justify-between"
+                                onClick={() => {
+                                  setSelectedCountry(country);
+                                  setValue('countryCode', country.code);
+                                  setShowCountrySelector(false);
+                                }}
+                              >
+                                <span>{country.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">{country.dial}</span>
+                                  {selectedCountry.code === country.code && (
+                                    <Check size={16} className="text-gold" />
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Phone className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="tel"
+                        {...register('phone', { validate: validatePhoneNumber })}
+                        className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                        placeholder="(555) 555-5555"
+                      />
+                    </div>
+                  </div>
+                  {errors.phone && (
+                    <p className="mt-1 text-red-400 text-sm">{errors.phone.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Trip Details Section */}
+              <div className="border-b border-gray-800 pb-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Trip Details</h3>
+
+                {/* Date and Time */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-white mb-2 font-medium">
+                      Pickup Date
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <DatePicker
+                        selected={selectedDate}
+                        onChange={(date) => setSelectedDate(date)}
+                        minDate={new Date()}
+                        dateFormat="MM/dd/yyyy"
+                        className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                        placeholderText="Select date"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white mb-2 font-medium">
+                      Pickup Time
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Clock className="h-5 w-5 text-gray-400" />
                       </div>
                       <DatePicker
-                        selected={selectedReturnTime}
-                        onChange={(time) => setSelectedReturnTime(time)}
+                        selected={selectedTime}
+                        onChange={(time) => setSelectedTime(time)}
                         showTimeSelect
                         showTimeSelectOnly
                         timeIntervals={30}
                         timeCaption="Time"
                         dateFormat="h:mm aa"
                         className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                        placeholderText="Select return time"
+                        placeholderText="Select time"
                       />
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Pickup Location */}
-              <div>
-                <label className="block text-white mb-2 font-medium">
-                  Pickup Location
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
+                {/* Trip Type Selection */}
+                <div className="mb-6">
+                  <label className="block text-white mb-2 font-medium">
+                    Trip Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label 
+                      className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                        tripType === 'one-way' 
+                          ? 'bg-gold/20 border-gold text-white' 
+                          : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="one-way"
+                        {...register('tripType')}
+                        className="sr-only"
+                      />
+                      <ArrowRight className="w-5 h-5 mr-2" />
+                      <span>One Way</span>
+                    </label>
+                    
+                    <label 
+                      className={`flex items-center justify-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                        tripType === 'round-trip' 
+                          ? 'bg-gold/20 border-gold text-white' 
+                          : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value="round-trip"
+                        {...register('tripType')}
+                        className="sr-only"
+                      />
+                      <Repeat className="w-5 h-5 mr-2" />
+                      <span>Round Trip</span>
+                    </label>
                   </div>
-                  <input
-                    type="text"
-                    {...register('pickupLocation', { required: 'Pickup location is required' })}
-                    className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                    placeholder="Enter pickup address"
-                  />
                 </div>
-                {errors.pickupLocation && (
-                  <p className="mt-1 text-red-400 text-sm">{errors.pickupLocation.message}</p>
-                )}
-              </div>
 
-              {/* Destination */}
-              <div>
-                <label className="block text-white mb-2 font-medium">
-                  Destination
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
+                {/* Return Date and Time (only for round trip) */}
+                {tripType === 'round-trip' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2 p-4 bg-gold/5 rounded-lg border border-gold/20 mb-6">
+                    <div className="md:col-span-2">
+                      <label className="block text-white mb-2 font-medium">
+                        Return Time
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Clock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <DatePicker
+                          selected={selectedReturnTime}
+                          onChange={(time) => setSelectedReturnTime(time)}
+                          showTimeSelect
+                          showTimeSelectOnly
+                          timeIntervals={30}
+                          timeCaption="Time"
+                          dateFormat="h:mm aa"
+                          className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                          placeholderText="Select return time"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    {...register('dropoffLocation', { required: 'Destination is required' })}
-                    className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                    placeholder="Enter destination address"
-                  />
-                </div>
-                {errors.dropoffLocation && (
-                  <p className="mt-1 text-red-400 text-sm">{errors.dropoffLocation.message}</p>
                 )}
-              </div>
 
-              {/* Number of Passengers */}
-              <div>
-                <label className="block text-white mb-2 font-medium">
-                  Number of Passengers
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Users className="h-5 w-5 text-gray-400" />
+                {/* Pickup Location */}
+                <div className="mb-4">
+                  <label className="block text-white mb-2 font-medium">
+                    Pickup Location
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      {...register('pickupLocation', { required: 'Pickup location is required' })}
+                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                      placeholder="Enter pickup address"
+                    />
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    {...register('passengers', { 
-                      required: 'Number of passengers is required',
-                      min: {
-                        value: 1,
-                        message: 'Minimum 1 passenger required'
-                      }
-                    })}
-                    className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
-                    placeholder="Enter number of passengers"
-                  />
+                  {errors.pickupLocation && (
+                    <p className="mt-1 text-red-400 text-sm">{errors.pickupLocation.message}</p>
+                  )}
                 </div>
-                {errors.passengers && (
-                  <p className="mt-1 text-red-400 text-sm">{errors.passengers.message}</p>
-                )}
+
+                {/* Destination */}
+                <div className="mb-4">
+                  <label className="block text-white mb-2 font-medium">
+                    Destination
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      {...register('dropoffLocation', { required: 'Destination is required' })}
+                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                      placeholder="Enter destination address"
+                    />
+                  </div>
+                  {errors.dropoffLocation && (
+                    <p className="mt-1 text-red-400 text-sm">{errors.dropoffLocation.message}</p>
+                  )}
+                </div>
+
+                {/* Number of Passengers */}
+                <div>
+                  <label className="block text-white mb-2 font-medium">
+                    Number of Passengers
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Users className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      {...register('passengers', { 
+                        required: 'Number of passengers is required',
+                        min: {
+                          value: 1,
+                          message: 'Minimum 1 passenger required'
+                        }
+                      })}
+                      className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                      placeholder="Enter number of passengers"
+                    />
+                  </div>
+                  {errors.passengers && (
+                    <p className="mt-1 text-red-400 text-sm">{errors.passengers.message}</p>
+                  )}
+                </div>
               </div>
 
               {/* Additional Notes */}
