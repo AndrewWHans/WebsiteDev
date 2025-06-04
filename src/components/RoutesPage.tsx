@@ -59,26 +59,45 @@ export const RoutesPage = () => {
 
   const loadVisibleCities = async () => {
     try {
-      // Get the list of all cities
-      const allCities = ['Tampa', 'St. Petersburg', 'Oaxaca', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Mexico City'];
+      // Get the custom city order from system settings
+      const { data: orderData, error: orderError } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'city_order')
+        .single();
+
+      // Default order if no custom order found
+      let orderedCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      
+      // If we have a custom order, use it
+      if (orderData && orderData.value) {
+        try {
+          const customOrder = JSON.parse(orderData.value);
+          if (Array.isArray(customOrder)) {
+            orderedCities = customOrder;
+          }
+        } catch (e) {
+          console.error('Error parsing city order:', e);
+        }
+      }
       
       // Get hidden cities from system settings
-      const { data, error } = await supabase
+      const { data: hiddenData, error: hiddenError } = await supabase
         .from('system_settings')
         .select('value')
         .eq('key', 'hidden_cities')
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (hiddenError && hiddenError.code !== 'PGRST116') {
+        throw hiddenError;
       }
       
-      // If we have hidden cities, filter them out
-      if (data && data.value) {
+      // If we have hidden cities, filter them out while preserving order
+      if (hiddenData && hiddenData.value) {
         try {
-          const hiddenCities = JSON.parse(data.value);
+          const hiddenCities = JSON.parse(hiddenData.value);
           if (Array.isArray(hiddenCities)) {
-            setVisibleCities(allCities.filter(city => !hiddenCities.includes(city)));
+            setVisibleCities(orderedCities.filter(city => !hiddenCities.includes(city)));
             return;
           }
         } catch (e) {
@@ -86,12 +105,12 @@ export const RoutesPage = () => {
         }
       }
       
-      // Default to all cities if no hidden cities found
-      setVisibleCities(allCities);
+      // Default to all cities in order if no hidden cities found
+      setVisibleCities(orderedCities);
     } catch (err) {
       console.error('Error loading visible cities:', err);
       // Default to all cities if there's an error
-      setVisibleCities(['Tampa', 'St. Petersburg', 'Oaxaca', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Mexico City']);
+      setVisibleCities(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City']);
     }
   };
 
