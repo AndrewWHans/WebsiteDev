@@ -74,7 +74,7 @@ export const AdminRoutes = () => {
       if (error) throw error;
       
       // Initialize all cities as visible
-      const cities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City'];
+      const cities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City', 'New Haven'];
       const initialVisibility: {[key: string]: boolean} = {};
       cities.forEach(city => {
         initialVisibility[city] = true;
@@ -159,12 +159,12 @@ export const AdminRoutes = () => {
       }
       
       // Default order if no custom order found
-      const defaultOrder = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      const defaultOrder = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
       setCityOrder(defaultOrder);
     } catch (err) {
       console.error('Error loading city order:', err);
       // Default order on error
-      setCityOrder(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City']);
+      setCityOrder(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven']);
     }
   };
 
