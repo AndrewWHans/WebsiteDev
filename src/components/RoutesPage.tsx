@@ -67,7 +67,7 @@ export const RoutesPage = () => {
         .single();
 
       // Default order if no custom order found
-      let orderedCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      let orderedCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
       
       // If we have a custom order, use it
       if (orderData && orderData.value) {
@@ -110,7 +110,7 @@ export const RoutesPage = () => {
     } catch (err) {
       console.error('Error loading visible cities:', err);
       // Default to all cities if there's an error
-      setVisibleCities(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City']);
+      setVisibleCities(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven']);
     }
   };
 
@@ -333,10 +333,12 @@ export const RoutesPage = () => {
                 defaultSrc: cityName === "St. Petersburg" ? "stpete.png" : 
                             cityName === "Jersey Shore" ? "jerseyshore.png" : 
                             cityName === "Mexico City" ? "MexicoCity.png" :
+                            cityName === "New Haven" ? "newhaven.png" :
                             `${cityName.toLowerCase()}.png`,
                 grayscaleSrc: cityName === "St. Petersburg" ? "stpetebw.png" : 
                               cityName === "Jersey Shore" ? "jerseyshorebw.png" : 
                               cityName === "Mexico City" ? "MexicoCitybw.png" :
+                              cityName === "New Haven" ? "newhavenbw.png" :
                               `${cityName.toLowerCase()}bw.png`
               };
               return (
@@ -386,10 +388,12 @@ export const RoutesPage = () => {
                 defaultSrc: cityName === "St. Petersburg" ? "stpete.png" : 
                             cityName === "Jersey Shore" ? "jerseyshore.png" : 
                             cityName === "Mexico City" ? "MexicoCity.png" :
+                            cityName === "New Haven" ? "newhaven.png" :
                             `${cityName.toLowerCase()}.png`,
                 grayscaleSrc: cityName === "St. Petersburg" ? "stpetebw.png" : 
                               cityName === "Jersey Shore" ? "jerseyshorebw.png" : 
                               cityName === "Mexico City" ? "MexicoCitybw.png" :
+                              cityName === "New Haven" ? "newhavenbw.png" :
                               `${cityName.toLowerCase()}bw.png`
               };
               return (
