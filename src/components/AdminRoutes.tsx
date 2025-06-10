@@ -450,9 +450,9 @@ export const AdminRoutes = () => {
       {/* City Visibility Modal */}
       {showCityModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b bg-gradient-to-r from-indigo-50 to-blue-50">
+            <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Manage City Visibility</h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -468,7 +468,7 @@ export const AdminRoutes = () => {
             </div>
             
             {/* Search and Bulk Actions */}
-            <div className="p-4 border-b bg-gray-50">
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 mb-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative flex-1">
                   <input
@@ -514,72 +514,69 @@ export const AdminRoutes = () => {
             </div>
             
             {/* Cities List - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(cityVisibility)
-                  .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([city, isVisible]) => (
-                  <div key={city} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all">
-                    <div className="flex items-center min-w-0 flex-1">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                      <span className="font-medium text-gray-900 truncate">{city}</span>
+            <div className="p-4">
+              <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Object.entries(cityVisibility)
+                    .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([city, isVisible]) => (
+                    <div key={city} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all">
+                      <div className="flex items-center min-w-0 flex-1">
+                        <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                        <span className="font-medium text-gray-900 truncate">{city}</span>
+                      </div>
+                      <button
+                        onClick={() => toggleCityVisibility(city)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center transition-all ml-3 flex-shrink-0 ${
+                          isVisible 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'
+                        }`}
+                      >
+                        {isVisible ? (
+                          <>
+                            <Check className="w-3 h-3 mr-1" />
+                            Visible
+                          </>
+                        ) : (
+                          <>
+                            <X className="w-3 h-3 mr-1" />
+                            Hidden
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => toggleCityVisibility(city)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center transition-all ml-3 flex-shrink-0 ${
-                        isVisible 
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-200' 
-                          : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'
-                      }`}
-                    >
-                      {isVisible ? (
-                        <>
-                          <Check className="w-3 h-3 mr-1" />
-                          Visible
-                        </>
-                      ) : (
-                        <>
-                          <X className="w-3 h-3 mr-1" />
-                          Hidden
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ))}
-              </div>
-              
-              {/* No results message */}
-              {citySearchTerm && Object.entries(cityVisibility)
-                .filter(([city]) => city.toLowerCase().includes(citySearchTerm.toLowerCase())).length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                  <p>No cities found matching "{citySearchTerm}"</p>
+                  ))}
                 </div>
-              )}
+                
+                {/* No results message */}
+                {citySearchTerm && Object.entries(cityVisibility)
+                  .filter(([city]) => city.toLowerCase().includes(citySearchTerm.toLowerCase())).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                    <p>No cities found matching "{citySearchTerm}"</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Footer */}
-            <div className="flex justify-between items-center p-4 border-t bg-gray-50">
-              <div className="text-sm text-gray-500">
-                Changes will be saved to the database
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={handleCloseCityModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={saveCityVisibility}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleCloseCityModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveCityVisibility}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
