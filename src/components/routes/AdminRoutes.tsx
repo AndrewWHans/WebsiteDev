@@ -26,6 +26,7 @@ export const AdminRoutes = () => {
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [cityOrder, setCityOrder] = useState<string[]>([]);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [citySearchTerm, setCitySearchTerm] = useState('');
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<RouteFormData>();
 
@@ -119,6 +120,7 @@ export const AdminRoutes = () => {
       if (error) throw error;
       
       setSuccess('City visibility settings saved successfully');
+      setCitySearchTerm(''); // Reset search when saving
       setShowCityModal(false);
     } catch (err) {
       console.error('Error saving city visibility:', err);
@@ -283,7 +285,12 @@ export const AdminRoutes = () => {
     setEditingRoute(null);
     setSelectedDate(null);
     setSelectedTimes([]);
-    setError(null);
+    reset();
+  };
+
+  const handleCloseCityModal = () => {
+    setShowCityModal(false);
+    setCitySearchTerm(''); // Reset search when closing
   };
 
   const handleEdit = (route: Route) => {
@@ -443,61 +450,117 @@ export const AdminRoutes = () => {
       {/* City Visibility Modal */}
       {showCityModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Manage City Visibility</h3>
-              <button onClick={() => setShowCityModal(false)}>
-                <X className="w-5 h-5 text-gray-400 hover:text-gray-500" />
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Manage City Visibility</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {Object.values(cityVisibility).filter(Boolean).length} of {Object.keys(cityVisibility).length} cities visible
+                </p>
+              </div>
+              <button 
+                onClick={handleCloseCityModal}
+                className="text-gray-400 hover:text-gray-500 transition-colors p-1 rounded-full hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <p className="text-sm text-gray-500 mb-4">
-              Toggle which cities are visible on the shuttles page. Hidden cities will not appear in the city selection grid.
-            </p>
-            
-            <div className="space-y-3 mb-6">
-              {Object.entries(cityVisibility).map(([city, isVisible]) => (
-                <div key={city} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <MapPin className="w-5 h-5 text-gray-400 mr-2" />
-                    <span className="font-medium">{city}</span>
-                  </div>
+            {/* Search and Bulk Actions */}
+            <div className="p-4 border-b bg-gray-50">
+              <div className="flex items-center justify-between gap-4">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search cities..."
+                    value={citySearchTerm}
+                    onChange={(e) => setCitySearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  />
+                  <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                </div>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => toggleCityVisibility(city)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium flex items-center ${
-                      isVisible 
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                        : 'bg-red-100 text-red-800 hover:bg-red-200'
-                    }`}
+                    onClick={() => {
+                      const newVisibility = { ...cityVisibility };
+                      Object.keys(newVisibility).forEach(city => {
+                        if (!citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase())) {
+                          newVisibility[city] = true;
+                        }
+                      });
+                      setCityVisibility(newVisibility);
+                    }}
+                    className="px-3 py-2 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
                   >
-                    {isVisible ? (
-                      <>
-                        <Check className="w-4 h-4 mr-1" />
-                        Visible
-                      </>
-                    ) : (
-                      <>
-                        <X className="w-4 h-4 mr-1" />
-                        Hidden
-                      </>
-                    )}
+                    Show All
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newVisibility = { ...cityVisibility };
+                      Object.keys(newVisibility).forEach(city => {
+                        if (!citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase())) {
+                          newVisibility[city] = false;
+                        }
+                      });
+                      setCityVisibility(newVisibility);
+                    }}
+                    className="px-3 py-2 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                  >
+                    Hide All
                   </button>
                 </div>
-              ))}
+              </div>
+            </div>
+            
+            {/* Cities List - Compact Grid with Fixed Height */}
+            <div className="p-4 h-80 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(cityVisibility)
+                  .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([city, isVisible]) => (
+                  <div key={city} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded text-xs">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <span className="font-medium text-gray-900 truncate">{city}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleCityVisibility(city)}
+                      className={`px-2 py-1 rounded text-xs font-medium ml-2 flex-shrink-0 min-w-[60px] ${
+                        isVisible 
+                          ? 'bg-green-200 text-green-800 hover:bg-green-300' 
+                          : 'bg-red-200 text-red-800 hover:bg-red-300'
+                      }`}
+                    >
+                      {isVisible ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              {/* No results message */}
+              {citySearchTerm && Object.entries(cityVisibility)
+                .filter(([city]) => city.toLowerCase().includes(citySearchTerm.toLowerCase())).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                  <p>No cities found matching "{citySearchTerm}"</p>
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end space-x-3">
+            {/* Footer */}
+            <div className="flex justify-end space-x-3 p-4 border-t bg-gray-50">
               <button
                 type="button"
-                onClick={() => setShowCityModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                onClick={handleCloseCityModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={saveCityVisibility}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
               >
                 Save Changes
               </button>
