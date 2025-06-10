@@ -74,10 +74,10 @@ export const AdminRoutes = () => {
 
       if (error) throw error;
       
-      // Initialize all cities as visible (ensure we have all current cities)
-      const allCities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City', 'New Haven'];
+      // Initialize all cities as visible
+      const cities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City', 'New Haven'];
       const initialVisibility: {[key: string]: boolean} = {};
-      allCities.forEach(city => {
+      cities.forEach(city => {
         initialVisibility[city] = true;
       });
       
@@ -87,10 +87,7 @@ export const AdminRoutes = () => {
           const hiddenCities = JSON.parse(data[0].value);
           if (Array.isArray(hiddenCities)) {
             hiddenCities.forEach(city => {
-              // Only hide cities that are in our current city list
-              if (initialVisibility.hasOwnProperty(city)) {
-                initialVisibility[city] = false;
-              }
+              initialVisibility[city] = false;
             });
           }
         } catch (e) {
@@ -101,13 +98,6 @@ export const AdminRoutes = () => {
       setCityVisibility(initialVisibility);
     } catch (err) {
       console.error('Error loading city visibility:', err);
-      // Fallback to all cities visible
-      const fallbackCities = ['Miami', 'Orlando', 'Tampa', 'St. Petersburg', 'Oaxaca', 'Jersey Shore', 'Austin', 'Nashville', 'Mexico City', 'New Haven'];
-      const fallbackVisibility: {[key: string]: boolean} = {};
-      fallbackCities.forEach(city => {
-        fallbackVisibility[city] = true;
-      });
-      setCityVisibility(fallbackVisibility);
     }
   };
 
@@ -157,29 +147,12 @@ export const AdminRoutes = () => {
         throw error;
       }
       
-      // All cities that should be available
-      const allCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
-      
-      // If we have a custom order, use it but ensure all cities are included
+      // If we have a custom order, use it
       if (data && data.value) {
         try {
           const customOrder = JSON.parse(data.value);
           if (Array.isArray(customOrder)) {
-            // Add any missing cities to the end of the custom order
-            const missingCities = allCities.filter(city => !customOrder.includes(city));
-            const completeOrder = [...customOrder, ...missingCities];
-            setCityOrder(completeOrder);
-            
-            // If we added missing cities, save the updated order
-            if (missingCities.length > 0) {
-              await supabase
-                .from('system_settings')
-                .upsert({
-                  key: 'city_order',
-                  value: JSON.stringify(completeOrder),
-                  description: 'Custom order for displaying cities'
-                });
-            }
+            setCityOrder(customOrder);
             return;
           }
         } catch (e) {
@@ -188,12 +161,12 @@ export const AdminRoutes = () => {
       }
       
       // Default order if no custom order found
-      setCityOrder(allCities);
+      const defaultOrder = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
+      setCityOrder(defaultOrder);
     } catch (err) {
       console.error('Error loading city order:', err);
       // Default order on error
-      const defaultCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
-      setCityOrder(defaultCities);
+      setCityOrder(['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven']);
     }
   };
 
@@ -540,8 +513,8 @@ export const AdminRoutes = () => {
               </div>
             </div>
             
-            {/* Cities List - Scrollable with fixed height */}
-            <div className="flex-1 overflow-y-auto p-4 max-h-96">
+            {/* Cities List - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Object.entries(cityVisibility)
                   .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
