@@ -73,7 +73,7 @@ export const DealsPage = () => {
         .single();
 
       // Default order if no custom order found
-      let orderedCityNames = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City'];
+      let orderedCityNames = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
       
       // If we have a custom order, use it
       if (orderData && orderData.value) {
@@ -93,10 +93,12 @@ export const DealsPage = () => {
         defaultSrc: cityName === "St. Petersburg" ? "stpete.png" : 
                     cityName === "Jersey Shore" ? "jerseyshore.png" : 
                     cityName === "Mexico City" ? "MexicoCity.png" :
+                    cityName === "New Haven" ? "newhaven.png" :
                     `${cityName.toLowerCase()}.png`,
         grayscaleSrc: cityName === "St. Petersburg" ? "stpetebw.png" : 
                       cityName === "Jersey Shore" ? "jerseyshorebw.png" : 
                       cityName === "Mexico City" ? "MexicoCitybw.png" :
+                      cityName === "New Haven" ? "newhavenbw.png" :
                       `${cityName.toLowerCase()}bw.png`
       }));
 
@@ -114,6 +116,7 @@ export const DealsPage = () => {
         { name: "Jersey Shore", defaultSrc: "jerseyshore.png", grayscaleSrc: "jerseyshorebw.png" },
         { name: "Oaxaca", defaultSrc: "oaxaca.png", grayscaleSrc: "oaxacabw.png" },
         { name: "Mexico City", defaultSrc: "MexicoCity.png", grayscaleSrc: "MexicoCitybw.png" },
+        { name: "New Haven", defaultSrc: "newhaven.png", grayscaleSrc: "newhavenbw.png" },
       ]);
     }
   };
