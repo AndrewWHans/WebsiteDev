@@ -450,9 +450,9 @@ export const AdminRoutes = () => {
       {/* City Visibility Modal */}
       {showCityModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center p-4 border-b">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">Manage City Visibility</h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -468,7 +468,7 @@ export const AdminRoutes = () => {
             </div>
             
             {/* Search and Bulk Actions */}
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 mb-4">
+            <div className="p-4 border-b bg-gray-50">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative flex-1">
                   <input
@@ -513,52 +513,48 @@ export const AdminRoutes = () => {
               </div>
             </div>
             
-            {/* Cities List - Scrollable */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 max-h-96 overflow-y-auto">
-              {Object.entries(cityVisibility)
-                .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([city, isVisible]) => (
-                <div key={city} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all">
-                  <div className="flex items-center min-w-0 flex-1">
-                    <MapPin className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
-                    <span className="font-medium text-gray-900 truncate">{city}</span>
+            {/* Cities List - Compact Grid with Fixed Height */}
+            <div className="p-4 h-96 overflow-y-auto">
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(cityVisibility)
+                  .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([city, isVisible]) => (
+                  <div key={city} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-md hover:border-gray-300 transition-all text-sm">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <MapPin className="w-3 h-3 text-gray-400 mr-2 flex-shrink-0" />
+                      <span className="font-medium text-gray-900 truncate text-xs">{city}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleCityVisibility(city)}
+                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center transition-all ml-2 flex-shrink-0 ${
+                        isVisible 
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      }`}
+                    >
+                      {isVisible ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        <X className="w-3 h-3" />
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleCityVisibility(city)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center transition-all ml-3 flex-shrink-0 ${
-                      isVisible 
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-200' 
-                        : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'
-                    }`}
-                  >
-                    {isVisible ? (
-                      <>
-                        <Check className="w-3 h-3 mr-1" />
-                        Visible
-                      </>
-                    ) : (
-                      <>
-                        <X className="w-3 h-3 mr-1" />
-                        Hidden
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            {/* No results message */}
-            {citySearchTerm && Object.entries(cityVisibility)
-              .filter(([city]) => city.toLowerCase().includes(citySearchTerm.toLowerCase())).length === 0 && (
-              <div className="text-center py-8 text-gray-500 mb-6">
-                <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                <p>No cities found matching "{citySearchTerm}"</p>
+                ))}
               </div>
-            )}
+              
+              {/* No results message */}
+              {citySearchTerm && Object.entries(cityVisibility)
+                .filter(([city]) => city.toLowerCase().includes(citySearchTerm.toLowerCase())).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <MapPin className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                  <p>No cities found matching "{citySearchTerm}"</p>
+                </div>
+              )}
+            </div>
 
             {/* Footer */}
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 p-4 border-t bg-gray-50">
               <button
                 type="button"
                 onClick={handleCloseCityModal}
