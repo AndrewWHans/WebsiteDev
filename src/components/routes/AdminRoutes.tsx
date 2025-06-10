@@ -147,12 +147,32 @@ export const AdminRoutes = () => {
         throw error;
       }
       
-      // If we have a custom order, use it
+      // Complete list of all cities
+      const allCities = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
+      
+      // If we have a custom order, merge it with any missing cities
       if (data && data.value) {
         try {
           const customOrder = JSON.parse(data.value);
           if (Array.isArray(customOrder)) {
-            setCityOrder(customOrder);
+            // Find cities that are in allCities but not in customOrder
+            const missingCities = allCities.filter(city => !customOrder.includes(city));
+            
+            // Add missing cities to the end of the custom order
+            const mergedOrder = [...customOrder, ...missingCities];
+            
+            setCityOrder(mergedOrder);
+            
+            // If we added missing cities, save the updated order
+            if (missingCities.length > 0) {
+              await supabase
+                .from('system_settings')
+                .upsert({
+                  key: 'city_order',
+                  value: JSON.stringify(mergedOrder),
+                  description: 'Custom order for displaying cities'
+                });
+            }
             return;
           }
         } catch (e) {
@@ -161,8 +181,7 @@ export const AdminRoutes = () => {
       }
       
       // Default order if no custom order found
-      const defaultOrder = ['Tampa', 'St. Petersburg', 'Orlando', 'Miami', 'Nashville', 'Austin', 'Jersey Shore', 'Oaxaca', 'Mexico City', 'New Haven'];
-      setCityOrder(defaultOrder);
+      setCityOrder(allCities);
     } catch (err) {
       console.error('Error loading city order:', err);
       // Default order on error
