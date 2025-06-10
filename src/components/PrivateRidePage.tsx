@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
-import { parsePhoneNumber, isValidPhoneNumber, CountryCode } from 'libphonenumber-js';
 import "react-datepicker/dist/react-datepicker.css";
 import { 
   Calendar,
@@ -94,22 +93,42 @@ export const PrivateRidePage = () => {
           // If user has a phone number, parse and set it in the form
           if (profile?.phone_number) {
             try {
-              const phoneNumber = parsePhoneNumber(profile.phone_number);
+              // Extract the numeric part from the stored phone number
+              const cleanPhone = profile.phone_number.replace(/[^\d]/g, '');
               
-              // Find the country code that matches the phone number
-              const countryMatch = POPULAR_COUNTRIES.find(
-                country => country.dial === `+${phoneNumber.countryCallingCode}`
-              );
-              
-              if (countryMatch) {
-                setSelectedCountry(countryMatch);
-                setValue('countryCode', countryMatch.code);
+              // Try to determine the country from the phone number format
+              if (profile.phone_number.startsWith('+52')) {
+                const mexicoCountry = POPULAR_COUNTRIES.find(c => c.code === 'MX');
+                if (mexicoCountry) {
+                  setSelectedCountry(mexicoCountry);
+                  setValue('countryCode', mexicoCountry.code);
+                }
+                // Remove the +52 prefix for display
+                setValue('phone', cleanPhone.replace(/^52/, ''));
+              } else if (profile.phone_number.startsWith('+1')) {
+                const usCountry = POPULAR_COUNTRIES.find(c => c.code === 'US');
+                if (usCountry) {
+                  setSelectedCountry(usCountry);
+                  setValue('countryCode', usCountry.code);
+                }
+                // Remove the +1 prefix for display
+                setValue('phone', cleanPhone.replace(/^1/, ''));
+              } else if (profile.phone_number.startsWith('+44')) {
+                const ukCountry = POPULAR_COUNTRIES.find(c => c.code === 'GB');
+                if (ukCountry) {
+                  setSelectedCountry(ukCountry);
+                  setValue('countryCode', ukCountry.code);
+                }
+                // Remove the +44 prefix for display
+                setValue('phone', cleanPhone.replace(/^44/, ''));
+              } else {
+                // Default to showing the full number if we can't parse it
+                setValue('phone', cleanPhone);
               }
-              
-              // Set the national number (without country code)
-              setValue('phone', phoneNumber.nationalNumber);
             } catch (err) {
               console.error('Error parsing phone number:', err);
+              // Just set the phone number as-is if parsing fails
+              setValue('phone', profile.phone_number.replace(/[^\d]/g, ''));
             }
           }
         } else {
@@ -130,26 +149,14 @@ export const PrivateRidePage = () => {
   const validatePhoneNumber = (value: string) => {
     if (!value) return 'Phone number is required';
     
-    const fullNumber = `${selectedCountry.dial}${value.replace(/[^\d]/g, '')}`;
+    // Only check that the value contains digits
+    const cleanedValue = value.replace(/[^\d]/g, '');
     
-    try {
-      if (!isValidPhoneNumber(fullNumber, selectedCountry.code as CountryCode)) {
-        return 'Invalid phone number format';
-      }
-      
-      const phoneNumber = parsePhoneNumber(fullNumber, selectedCountry.code as CountryCode);
-      if (!phoneNumber.isValid()) {
-        return 'Invalid phone number';
-      }
-      
-      if (phoneNumber.getType() !== 'MOBILE' && phoneNumber.getType() !== 'FIXED_LINE_OR_MOBILE') {
-        return 'Please enter a valid mobile number';
-      }
-      
-      return true;
-    } catch (err) {
-      return 'Invalid phone number';
+    if (cleanedValue.length < 7) {
+      return 'Phone number must be at least 7 digits';
     }
+    
+    return true;
   };
   const onSubmit = async (data: FormData) => {
     if (!selectedDate || !selectedTime) {
@@ -188,13 +195,13 @@ export const PrivateRidePage = () => {
         });
       }
       
-      // Format phone number
-      const fullNumber = `${selectedCountry.dial}${data.phone.replace(/[^\d]/g, '')}`;
-      const phoneNumber = parsePhoneNumber(fullNumber, selectedCountry.code as CountryCode);
+      // Format phone number - just combine country code with cleaned digits
+      const cleanedPhone = data.phone.replace(/[^\d]/g, '');
+      const fullNumber = `${selectedCountry.dial}${cleanedPhone}`;
 
       // Prepare the request data
       const requestData: any = {
-        phone_number: phoneNumber.format('E.164'),
+        phone_number: fullNumber,
         pickup_date: formattedDate,
         pickup_time: formattedTime,
         return_date: formattedReturnDate,
