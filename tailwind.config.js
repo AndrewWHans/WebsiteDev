@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        gold: '#ffcf73',
+        gold: '#ffffff',
         'gray': {
           900: '#121212',
           800: '#1e1e1e',
@@ -18,7 +18,7 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 15px rgba(255, 207, 115, 0.5)',
+        glow: '0 0 15px rgba(255, 255, 255, 0.5)',
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
