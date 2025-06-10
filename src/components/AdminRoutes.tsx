@@ -514,30 +514,25 @@ export const AdminRoutes = () => {
             </div>
             
             {/* Cities List - Compact Grid with Fixed Height */}
-            <div className="p-4 h-96 overflow-y-auto">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="p-4 h-80 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
                 {Object.entries(cityVisibility)
                   .filter(([city]) => !citySearchTerm || city.toLowerCase().includes(citySearchTerm.toLowerCase()))
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([city, isVisible]) => (
-                  <div key={city} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-md hover:border-gray-300 transition-all text-sm">
+                  <div key={city} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded text-xs">
                     <div className="flex items-center min-w-0 flex-1">
-                      <MapPin className="w-3 h-3 text-gray-400 mr-2 flex-shrink-0" />
-                      <span className="font-medium text-gray-900 truncate text-xs">{city}</span>
+                      <span className="font-medium text-gray-900 truncate">{city}</span>
                     </div>
                     <button
                       onClick={() => toggleCityVisibility(city)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center transition-all ml-2 flex-shrink-0 ${
+                      className={`px-2 py-1 rounded text-xs font-medium ml-2 flex-shrink-0 min-w-[60px] ${
                         isVisible 
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                          ? 'bg-green-200 text-green-800 hover:bg-green-300' 
+                          : 'bg-red-200 text-red-800 hover:bg-red-300'
                       }`}
                     >
-                      {isVisible ? (
-                        <Check className="w-3 h-3" />
-                      ) : (
-                        <X className="w-3 h-3" />
-                      )}
+                      {isVisible ? 'ON' : 'OFF'}
                     </button>
                   </div>
                 ))}
