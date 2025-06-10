@@ -257,7 +257,7 @@ export const RouteDetailPage = () => {
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#FFD700', '#FFC107', '#FFEB3B', '#ffffff', '#4CAF50']
+      colors: ['#fece5c', '#FFC107', '#FFEB3B', '#ffffff', '#4CAF50']
     });
 
     // Add a second burst after a slight delay
@@ -267,7 +267,7 @@ export const RouteDetailPage = () => {
         angle: 60,
         spread: 55,
         origin: { x: 0 },
-        colors: ['#FFD700', '#FFA000', '#F57F17']
+        colors: ['#fece5c', '#FFA000', '#F57F17']
       });
     }, 200);
 
@@ -278,7 +278,7 @@ export const RouteDetailPage = () => {
         angle: 120,
         spread: 55,
         origin: { x: 1 },
-        colors: ['#FFD700', '#FFA000', '#F57F17']
+        colors: ['#fece5c', '#FFA000', '#F57F17']
       });
     }, 400);
   };
