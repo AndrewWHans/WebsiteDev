@@ -32,7 +32,7 @@ export function HeroSection({ user, onSignIn }: HeroSectionProps) {
               className="h-32 md:h-48 object-contain"
             />
           </h1>
-          <p className="text-lg md:text-2xl mb-8 text-gray-300">
+          <p className="text-lg md:text-2xl mb-8 text-gold">
             Welcome to the Future of Nightlife
           </p>
           {!user && (
