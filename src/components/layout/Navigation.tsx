@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  Bus, 
   UserCircle,
   ChevronDown,
   Wallet,
@@ -46,7 +45,6 @@ export function Navigation({
     <nav className="bg-black border-b border-gold/30 py-4 sticky top-0 z-40 transition-shadow duration-300 shadow-md">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center">
-          <Bus className="text-gold mr-2" size={28} />
           <span className="text-2xl font-extrabold tracking-tighter text-gold">ULimo</span>
         </div>
         <div className="hidden md:flex items-center space-x-8">
