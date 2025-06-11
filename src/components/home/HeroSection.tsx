@@ -25,8 +25,12 @@ export function HeroSection({ user, onSignIn }: HeroSectionProps) {
       </div>
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-gold leading-tight">
-            Arrive to the Party <br/> with the Party!
+          <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-gold leading-tight flex justify-center">
+            <img 
+              src="https://ypiymgwdgqauxuzauqlf.supabase.co/storage/v1/object/public/media/landingpage/picture/Original_ULimo_logo.png" 
+              alt="ULimo Logo"
+              className="h-16 md:h-24 object-contain"
+            />
           </h1>
           <p className="text-lg md:text-2xl mb-8 text-gray-300">
             Welcome to the Future of Nightlife
