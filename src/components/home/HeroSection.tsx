@@ -29,7 +29,7 @@ export function HeroSection({ user, onSignIn }: HeroSectionProps) {
             <img 
               src="https://ypiymgwdgqauxuzauqlf.supabase.co/storage/v1/object/public/media/landingpage/picture/Original_ULimo_logo.png" 
               alt="ULimo Logo"
-              className="h-16 md:h-24 object-contain"
+              className="h-64 md:h-96 object-contain"
             />
           </h1>
           <p className="text-lg md:text-2xl mb-8 text-gray-300">
