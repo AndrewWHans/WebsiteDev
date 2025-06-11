@@ -45,6 +45,11 @@ export function Navigation({
     <nav className="bg-black border-b border-gold/30 py-4 sticky top-0 z-40 transition-shadow duration-300 shadow-md">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center">
+          <img 
+            src="https://ypiymgwdgqauxuzauqlf.supabase.co/storage/v1/object/public/media/landingpage/picture/U_logo.png" 
+            alt="ULimo U Logo"
+            className="w-7 h-7 mr-2 object-contain"
+          />
           <span className="text-2xl font-extrabold tracking-tighter text-gold">ULimo</span>
         </div>
         <div className="hidden md:flex items-center space-x-8">
