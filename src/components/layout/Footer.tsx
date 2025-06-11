@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Bus,
   Instagram,
   ExternalLink,
 } from 'lucide-react';
@@ -14,7 +13,6 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center mb-4">
-              <Bus className="text-gold mr-2" size={24} />
               <span className="text-xl font-bold text-gold">ULimo</span>
             </div>
             <p className="text-gray-400 mb-4">
