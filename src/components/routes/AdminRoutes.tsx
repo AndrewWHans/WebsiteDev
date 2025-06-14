@@ -39,13 +39,13 @@ export const AdminRoutes = () => {
 
   useEffect(() => {
     if (editingRoute) {
-      setValue('pickup_location', editingRoute.pickup_location || '');
-      setValue('dropoff_location', editingRoute.dropoff_location || '');
+      setValue('pickup_location', editingRoute.pickup_location);
+      setValue('dropoff_location', editingRoute.dropoff_location);
       setValue('price', editingRoute.price);
       setValue('max_capacity_per_slot', editingRoute.max_capacity_per_slot);
       setValue('min_threshold', editingRoute.min_threshold);
-      setValue('city', editingRoute.city);
-      setSelectedDate(new Date(editingRoute.date));
+      const [year, month, day] = editingRoute.date.split('-').map(Number);
+      setSelectedDate(new Date(year, month - 1, day, 12, 0, 0));
       setSelectedTimes(editingRoute.time_slots.map(time => new Date(`1970-01-01T${time}`)));
     }
   }, [editingRoute, setValue]);
@@ -330,7 +330,10 @@ export const AdminRoutes = () => {
     }
 
     try {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
+      const formattedDate = selectedDate.getFullYear() + '-' + 
+        String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(selectedDate.getDate()).padStart(2, '0');
+      
       const formattedTimes = selectedTimes.map(time => {
         const hours = time.getHours().toString().padStart(2, '0');
         const minutes = time.getMinutes().toString().padStart(2, '0');
