@@ -218,7 +218,13 @@ export const RouteForm = ({
                 <div className="mt-1 relative">
                   <DatePicker
                     selected={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
+                    onChange={(date) => {
+                      if (date) {
+                        // Set the time to noon to avoid timezone issues
+                        date.setHours(12, 0, 0, 0);
+                        setSelectedDate(date);
+                      }
+                    }}
                     dateFormat="MM/dd/yyyy"
                     minDate={new Date()}
                     className="block w-full px-4 py-3 sm:text-sm border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
