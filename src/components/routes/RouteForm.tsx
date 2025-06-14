@@ -49,8 +49,6 @@ export const RouteForm = ({
       setValue('max_capacity_per_slot', editingRoute.max_capacity_per_slot);
       setValue('min_threshold', editingRoute.min_threshold);
       setValue('city', editingRoute.city);
-      setSelectedDate(new Date(editingRoute.date));
-      setSelectedTimes(editingRoute.time_slots.map(time => new Date(`1970-01-01T${time}`)));
     }
   }, [editingRoute, setValue]);
 
