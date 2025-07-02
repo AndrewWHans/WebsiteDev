@@ -279,7 +279,6 @@ export const DriverPortal = () => {
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
               onClick={() => {
-                console.log('Pending trips clicked, setting activeTab to pending-trips');
                 setActiveTab('pending-trips');
                 setShowMobileMenu(false);
               }}
@@ -496,17 +495,15 @@ export const DriverPortal = () => {
                 </div>
               </div>
             ) : activeTab === 'pending-trips' ? (
-              (() => {
-                console.log('Rendering DriverPendingTrips component, activeTab:', activeTab);
-                return (
-                  <div className="p-6">
-                    <h1 className="text-2xl font-semibold text-gray-900">Pending Trips Test</h1>
-                    <p className="mt-2 text-sm text-gray-700">This is a test to see if navigation is working</p>
-                    <p className="mt-4">Active tab: {activeTab}</p>
-                    <DriverPendingTrips />
-                  </div>
-                );
-              })()
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-900">Pending Trips</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    View and manage pending private ride requests
+                  </p>
+                </div>
+                <DriverPendingTrips />
+              </div>
             ) : (
               <div>
                 <div className="mb-6">
