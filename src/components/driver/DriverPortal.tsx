@@ -190,8 +190,24 @@ export const DriverPortal = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top Navigation Removed */}
-      {/* <nav className="bg-white shadow-sm sticky top-0 z-50"> ... </nav> */}
+      {/* Top Navigation Bar */}
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold text-yellow-500 mr-3">ULimo</span>
+            <span className="text-lg font-semibold text-gray-900">Driver Dashboard</span>
+          </div>
+          
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setShowMobileMenu(true)}
+            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
+      </nav>
+      
       <div className="flex flex-grow">
         {/* Sidebar */}
         <div className={`${
