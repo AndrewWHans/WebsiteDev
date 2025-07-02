@@ -45,6 +45,7 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminRoute = window.location.pathname.startsWith('/admin-dashboard');
+  const isDriverRoute = location.pathname.startsWith('/driver');
 
   // Handle base tag
   useEffect(() => {
@@ -154,18 +155,19 @@ function App() {
   return (
     <div className={`min-h-screen bg-black text-white font-sans ${isPageTransitioning ? 'opacity-0 transition-opacity duration-300' : 'opacity-100 transition-opacity duration-300'}`}>
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      
-      <Navigation 
-        key="navigation"
-        user={user}
-        userRole={userRole}
-        onSignIn={() => setIsAuthModalOpen(true)}
-        onShowProfile={() => setShowProfile(true)}
-        onShowWallet={() => setShowWallet(true)}
-        onSignOut={handleSignOut}
-        onShowMobileMenu={() => setShowMobileMenu(true)}
-        showMobileMenu={showMobileMenu}
-      />
+      {!isDriverRoute && (
+        <Navigation 
+          key="navigation"
+          user={user}
+          userRole={userRole}
+          onSignIn={() => setIsAuthModalOpen(true)}
+          onShowProfile={() => setShowProfile(true)}
+          onShowWallet={() => setShowWallet(true)}
+          onSignOut={handleSignOut}
+          onShowMobileMenu={() => setShowMobileMenu(true)}
+          showMobileMenu={showMobileMenu}
+        />
+      )}
 
       {showMobileMenu && (
         <MobileMenu 
