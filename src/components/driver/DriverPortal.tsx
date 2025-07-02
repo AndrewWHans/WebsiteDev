@@ -20,7 +20,7 @@ import {
   Settings,
   Bell
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { DriverAuthModal } from './DriverAuthModal';
 
 export const DriverPortal = () => {
