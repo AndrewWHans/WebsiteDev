@@ -257,7 +257,7 @@ export const DriverPortal = () => {
               My Routes
             </button>
             <button
-              className={`w-full text-left mt-1 ml-6 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'pending-trips' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
