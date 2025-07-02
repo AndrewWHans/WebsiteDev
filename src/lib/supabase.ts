@@ -13,10 +13,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create client with debug enabled
+// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    debug: true,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
