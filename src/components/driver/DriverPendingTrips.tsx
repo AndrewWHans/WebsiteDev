@@ -228,9 +228,6 @@ export const DriverPendingTrips = () => {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
-                      Customer
-                    </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Date & Time
                     </th>
@@ -254,7 +251,7 @@ export const DriverPendingTrips = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {requests.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
+                      <td colSpan={6} className="px-6 py-12 text-center">
                         <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900">No pending trips</h3>
                         <p className="mt-1 text-sm text-gray-500">
@@ -265,15 +262,6 @@ export const DriverPendingTrips = () => {
                   ) : (
                     requests.map((request) => (
                       <tr key={request.id} className="hover:bg-gray-50">
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                          <div className="font-medium text-gray-900">
-                            {getCustomerName(request)}
-                          </div>
-                          <div className="text-gray-500">{getCustomerEmail(request)}</div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {getCustomerType(request)}
-                          </div>
-                        </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           <div className="font-medium text-gray-900">
                             {formatDate(request.pickup_date)}
