@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
-  Car, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  ArrowLeft, 
-  CheckCircle,
+  LayoutDashboard,
+  Bus,
+  Home,
+  Users,
+  LogOut,
   Loader2,
   QrCode,
-  LogOut,
+  Menu,
+  X,
+  Calendar,
+  Clock,
+  MapPin,
+  CheckCircle,
+  XCircle,
   User as UserIcon,
-  Bus
+  BarChart3,
+  Settings,
+  Bell
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DriverAuthModal } from './DriverAuthModal';
@@ -24,8 +29,12 @@ export const DriverPortal = () => {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'scan' | 'profile'>('overview');
   const [upcomingRoutes, setUpcomingRoutes] = useState<any[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const [completedRoutes, setCompletedRoutes] = useState(0);
+  const [scannedTickets, setScannedTickets] = useState(0);
 
   // Check if user is logged in and has Driver role
   useEffect(() => {
@@ -58,6 +67,10 @@ export const DriverPortal = () => {
             
             // Load upcoming routes
             loadUpcomingRoutes();
+            
+            // Load driver stats (placeholder)
+            setCompletedRoutes(Math.floor(Math.random() * 10));
+            setScannedTickets(Math.floor(Math.random() * 100));
           }
         } else {
           // No user, show auth modal
@@ -144,171 +157,224 @@ export const DriverPortal = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-black">
-      {/* Auth Modal */}
-      <DriverAuthModal
-        isOpen={showAuthModal}
-        onClose={() => navigate('/')}
-        onAuthSuccess={handleAuthSuccess}
-      />
+  if (!user || !userProfile) {
+    return <DriverAuthModal isOpen={true} onClose={() => navigate('/')} onAuthSuccess={handleAuthSuccess} />;
+  }
 
-      {/* Driver Dashboard */}
-      {user && userProfile && (
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div className="flex items-center mb-4 md:mb-0">
-              <button 
-                onClick={() => navigate('/')}
-                className="mr-4 text-gold hover:text-gold/80 transition-colors"
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Navigation */}
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="lg:hidden mr-2 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
               >
-                <ArrowLeft size={24} />
+                {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <h1 className="text-3xl font-bold text-gold">Driver Dashboard</h1>
+              <Bus className="h-8 w-8 text-indigo-600" />
+              <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:inline">
+                Driver Dashboard
+              </span>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="bg-gray-900 rounded-lg px-4 py-2 border border-gold/30">
-                <div className="flex items-center">
-                  <div className="bg-gold/20 rounded-full p-2 mr-3">
-                    <UserIcon className="text-gold" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">
-                      {userProfile.first_name} {userProfile.last_name}
-                    </p>
-                    <p className="text-gray-400 text-sm">Driver</p>
-                  </div>
-                </div>
-              </div>
-              
+            <div className="flex items-center">
+              <a
+                href="/"
+                className="mr-2 sm:mr-4 inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Back to Website</span>
+              </a>
               <button
                 onClick={handleSignOut}
-                className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg border border-red-500/30 transition-colors flex items-center"
+                className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                <LogOut size={18} className="mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           </div>
+        </div>
+      </nav>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Quick Actions */}
-            <div className="lg:col-span-1">
-              <div className="bg-gray-900 rounded-xl border border-gold/30 p-6 mb-6">
-                <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-                
-                <div className="space-y-4">
-                  <button
-                    onClick={() => navigate('/verify')}
-                    className="w-full bg-gold hover:bg-yellow-400 text-black font-bold py-3 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    <QrCode size={20} className="mr-2" />
-                    Scan Tickets
-                  </button>
-                  
-                  <button
-                    className="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    <Bus size={20} className="mr-2" />
-                    View Assigned Routes
-                  </button>
-                </div>
-              </div>
-              
-              {/* Driver Stats */}
-              <div className="bg-gray-900 rounded-xl border border-gold/30 p-6">
-                <h2 className="text-xl font-bold text-white mb-4">Driver Stats</h2>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Routes Completed</span>
-                    <span className="text-white font-bold">0</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Tickets Scanned</span>
-                    <span className="text-white font-bold">0</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Rating</span>
-                    <span className="text-gold font-bold">N/A</span>
-                  </div>
-                </div>
-              </div>
+      <div className="flex flex-grow">
+        {/* Sidebar */}
+        <div className={`${
+          showMobileMenu 
+            ? 'fixed inset-0 z-40 bg-white w-full transform translate-x-0 transition-transform duration-300 ease-in-out'
+            : 'fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:relative lg:w-64 bg-white shadow-sm'
+        }`}>
+          {showMobileMenu && (
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Menu</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                <X size={24} />
+              </button>
             </div>
-            
-            {/* Right Column - Upcoming Routes */}
-            <div className="lg:col-span-2">
-              <div className="bg-gray-900 rounded-xl border border-gold/30 p-6">
-                <h2 className="text-xl font-bold text-white mb-4">Upcoming Routes</h2>
+          )}
+          <nav className="mt-5 px-2">
+            <a
+              href="#"
+              className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'overview' 
+                  ? 'bg-indigo-50 text-indigo-600' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              onClick={() => {
+                setActiveTab('overview');
+                setShowMobileMenu(false);
+              }}
+            >
+              <LayoutDashboard className="mr-3 h-6 w-6" />
+              Overview
+            </a>
+            <a
+              href="#"
+              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'routes' 
+                  ? 'bg-indigo-50 text-indigo-600' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              onClick={() => {
+                setActiveTab('routes');
+                setShowMobileMenu(false);
+              }}
+            >
+              <Bus className="mr-3 h-6 w-6" />
+              My Routes
+            </a>
+            <a
+              href="#"
+              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'scan' 
+                  ? 'bg-indigo-50 text-indigo-600' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              onClick={() => {
+                setActiveTab('scan');
+                setShowMobileMenu(false);
+              }}
+            >
+              <QrCode className="mr-3 h-6 w-6" />
+              Scan Tickets
+            </a>
+            <a
+              href="#"
+              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'profile' 
+                  ? 'bg-indigo-50 text-indigo-600' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              onClick={() => {
+                setActiveTab('profile');
+                setShowMobileMenu(false);
+              }}
+            >
+              <UserIcon className="mr-3 h-6 w-6" />
+              My Profile
+            </a>
+            <a
+              href="#"
+              className="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            >
+              <Settings className="mr-3 h-6 w-6" />
+              Settings
+            </a>
+          </nav>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto w-full">
+          <main className="p-6">
+            {activeTab === 'routes' ? ( 
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-900">My Routes</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    View and manage your assigned routes
+                  </p>
+                </div>
                 
                 {loadingRoutes ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="w-8 h-8 text-gold animate-spin" />
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                   </div>
                 ) : upcomingRoutes.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Bus className="w-12 h-12 text-gray-700 mx-auto mb-4" />
-                    <p className="text-gray-400">No upcoming routes assigned</p>
+                  <div className="bg-white rounded-lg shadow p-6 text-center">
+                    <Bus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">No routes assigned</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      You don't have any upcoming routes assigned to you yet.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {upcomingRoutes.map((route) => (
                       <div 
                         key={route.id}
-                        className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gold/30 transition-all"
+                        className="bg-white rounded-lg shadow overflow-hidden"
                       >
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-                          <div>
-                            <div className="flex items-center mb-2">
-                              <Calendar className="text-gold mr-2" size={16} />
-                              <span className="text-gray-300 text-sm">
-                                {formatDate(route.date)}
-                              </span>
-                            </div>
-                            
-                            <h3 className="text-lg font-bold text-white mb-2">
-                              {route.pickup.name} to {route.dropoff.name}
-                            </h3>
-                            
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {route.time_slots.map((time: string, index: number) => (
-                                <div 
-                                  key={index}
-                                  className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full flex items-center"
-                                >
-                                  <Clock className="w-3 h-3 text-gold mr-1" />
-                                  {formatTime(time)}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="mt-3 md:mt-0">
-                            <div className="bg-gray-700 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-gray-400 text-xs">Passengers</span>
-                                <span className="text-white font-bold">
-                                  {route.tickets_sold}/{route.max_capacity_per_slot * route.time_slots.length}
+                        <div className="p-6">
+                          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                            <div>
+                              <div className="flex items-center mb-2">
+                                <Calendar className="text-indigo-600 mr-2" size={16} />
+                                <span className="text-gray-600 text-sm">
+                                  {formatDate(route.date)}
                                 </span>
                               </div>
                               
-                              <div className="w-full bg-gray-600 rounded-full h-2">
-                                <div 
-                                  className="bg-gold h-2 rounded-full"
-                                  style={{ width: `${Math.min(100, (route.tickets_sold / (route.max_capacity_per_slot * route.time_slots.length)) * 100)}%` }}
-                                ></div>
+                              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                {route.pickup.name} to {route.dropoff.name}
+                              </h3>
+                              
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {route.time_slots.map((time: string, index: number) => (
+                                  <div 
+                                    key={index}
+                                    className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full flex items-center"
+                                  >
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {formatTime(time)}
+                                  </div>
+                                ))}
                               </div>
+                            </div>
+                            
+                            <div className="mt-3 md:mt-0">
+                              <div className="bg-gray-100 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-gray-600 text-xs">Passengers</span>
+                                  <span className="text-gray-900 font-bold">
+                                    {route.tickets_sold}/{route.max_capacity_per_slot * route.time_slots.length}
+                                  </span>
+                                </div>
+                                
+                                <div className="w-full bg-gray-300 rounded-full h-2">
+                                  <div 
+                                    className="bg-indigo-600 h-2 rounded-full"
+                                    style={{ width: `${Math.min(100, (route.tickets_sold / (route.max_capacity_per_slot * route.time_slots.length)) * 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                              
+                              <button
+                                className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-md transition-colors flex items-center justify-center"
+                              >
+                                <QrCode size={16} className="mr-2" />
+                                Scan Tickets
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -317,10 +383,291 @@ export const DriverPortal = () => {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            ) : activeTab === 'scan' ? (
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-900">Scan Tickets</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Scan passenger tickets to verify and check them in
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="text-center py-12">
+                    <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">Ticket Scanner</h3>
+                    <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto mb-6">
+                      Click the button below to open the camera and scan passenger tickets
+                    </p>
+                    <button
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-md transition-colors inline-flex items-center"
+                    >
+                      <QrCode size={18} className="mr-2" />
+                      Start Scanning
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mt-6 bg-white rounded-lg shadow p-6">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Scans</h2>
+                  <div className="text-center py-8 text-gray-500">
+                    No recent scans
+                  </div>
+                </div>
+              </div>
+            ) : activeTab === 'profile' ? (
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-900">My Profile</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    View and update your driver profile
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center">
+                      <div className="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl font-bold">
+                        {userProfile.first_name?.[0]}{userProfile.last_name?.[0]}
+                      </div>
+                      <div className="ml-6">
+                        <h2 className="text-xl font-bold text-gray-900">
+                          {userProfile.first_name} {userProfile.last_name}
+                        </h2>
+                        <p className="text-indigo-600 font-medium">Driver</p>
+                        <p className="text-gray-500">{userProfile.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                            <div className="mt-1 p-2 bg-gray-100 rounded-md">
+                              {userProfile.email}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Phone</label>
+                            <div className="mt-1 p-2 bg-gray-100 rounded-md">
+                              {userProfile.phone_number || 'Not provided'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Driver Information</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Driver ID</label>
+                            <div className="mt-1 p-2 bg-gray-100 rounded-md font-mono text-sm">
+                              {userProfile.id.substring(0, 8)}...
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Status</label>
+                            <div className="mt-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle size={12} className="mr-1" />
+                                Active
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                      >
+                        Edit Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-semibold text-gray-900">Welcome, {userProfile.first_name}!</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Here's an overview of your upcoming routes and stats
+                  </p>
+                </div>
+    
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Routes Card */}
+                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
+                          <Bus className="h-6 w-6 text-indigo-600" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">
+                              Upcoming Routes
+                            </dt>
+                            <dd className="flex items-baseline">
+                              <div className="text-2xl font-semibold text-gray-900">
+                                {upcomingRoutes.length}
+                              </div>
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+    
+                  {/* Completed Routes Card */}
+                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">
+                              Completed Routes
+                            </dt>
+                            <dd className="flex items-baseline">
+                              <div className="text-2xl font-semibold text-gray-900">
+                                {completedRoutes}
+                              </div>
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+    
+                  {/* Tickets Scanned Card */}
+                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                          <QrCode className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">
+                              Tickets Scanned
+                            </dt>
+                            <dd className="flex items-baseline">
+                              <div className="text-2xl font-semibold text-gray-900">
+                                {scannedTickets}
+                              </div>
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+    
+                {/* Next Route Section */}
+                <div className="mt-8">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">Next Route</h2>
+                  {upcomingRoutes.length > 0 ? (
+                    <div className="bg-white shadow rounded-lg overflow-hidden">
+                      <div className="p-6">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                          <div>
+                            <div className="flex items-center mb-2">
+                              <Calendar className="text-indigo-600 mr-2" size={16} />
+                              <span className="text-gray-600 text-sm">
+                                {formatDate(upcomingRoutes[0].date)}
+                              </span>
+                            </div>
+                            
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                              {upcomingRoutes[0].pickup.name} to {upcomingRoutes[0].dropoff.name}
+                            </h3>
+                            
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {upcomingRoutes[0].time_slots.map((time: string, index: number) => (
+                                <div 
+                                  key={index}
+                                  className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full flex items-center"
+                                >
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {formatTime(time)}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 md:mt-0">
+                            <div className="bg-gray-100 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-gray-600 text-xs">Passengers</span>
+                                <span className="text-gray-900 font-bold">
+                                  {upcomingRoutes[0].tickets_sold}/{upcomingRoutes[0].max_capacity_per_slot * upcomingRoutes[0].time_slots.length}
+                                </span>
+                              </div>
+                              
+                              <div className="w-full bg-gray-300 rounded-full h-2">
+                                <div 
+                                  className="bg-indigo-600 h-2 rounded-full"
+                                  style={{ width: `${Math.min(100, (upcomingRoutes[0].tickets_sold / (upcomingRoutes[0].max_capacity_per_slot * upcomingRoutes[0].time_slots.length)) * 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-3 flex space-x-2">
+                              <button
+                                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-md transition-colors flex items-center justify-center"
+                              >
+                                <QrCode size={16} className="mr-2" />
+                                Scan Tickets
+                              </button>
+                              
+                              <button
+                                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-md transition-colors flex items-center justify-center"
+                              >
+                                <MapPin size={16} className="mr-2" />
+                                View Map
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white shadow rounded-lg p-6 text-center">
+                      <Bus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900">No upcoming routes</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        You don't have any upcoming routes assigned to you yet.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Recent Activity Section */}
+                <div className="mt-8">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
+                  <div className="bg-white shadow rounded-lg">
+                    <div className="p-6">
+                      <div className="text-center py-8 text-gray-500">
+                        <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <p>No recent activity</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
         </div>
-      )}
+      </div>
     </div>
   );
 };
