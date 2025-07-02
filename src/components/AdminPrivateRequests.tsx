@@ -318,9 +318,6 @@ export const AdminPrivateRequests = () => {
                       Passengers
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Bids
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Status
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -371,14 +368,6 @@ export const AdminPrivateRequests = () => {
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         {request.passengers}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="font-medium text-gray-900">
-                            {request.bidding_enabled ? 'Open for bids' : 'No bidding'}
-                          </span>
-                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
