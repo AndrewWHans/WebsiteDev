@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, X, Eye, EyeOff, Phone, ChevronDown, Check, User } from 'lucide-react';
 import { parsePhoneNumber, isValidPhoneNumber, CountryCode } from 'libphonenumber-js';
-import { supabase, ensureProfile } from '../lib/supabase';
+import { supabase, ensureProfile } from '../../lib/supabase';
 import { LegalModal } from './LegalModal';
 
 type DriverAuthModalProps = {
