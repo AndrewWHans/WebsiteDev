@@ -169,42 +169,8 @@ export const DriverPortal = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="lg:hidden mr-2 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-              >
-                {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              <Bus className="h-8 w-8 text-indigo-600" />
-              <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:inline">
-                Driver Dashboard
-              </span>
-            </div>
-            <div className="flex items-center">
-              <a
-                href="/"
-                className="mr-2 sm:mr-4 inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Back to Website</span>
-              </a>
-              <button
-                onClick={handleSignOut}
-                className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      {/* Top Navigation Removed */}
+      {/* <nav className="bg-white shadow-sm sticky top-0 z-50"> ... </nav> */}
       <div className="flex flex-grow">
         {/* Sidebar */}
         <div className={`${
