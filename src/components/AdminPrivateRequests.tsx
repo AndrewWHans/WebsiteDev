@@ -376,11 +376,11 @@ export const AdminPrivateRequests = () => {
                         </span>
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
+                        <div className="flex flex-col space-y-1">
                           {request.status === 'pending' && request.bidding_enabled && (
                             <button
                               onClick={() => handleViewBids(request)}
-                              className="text-blue-600 hover:text-blue-900 flex items-center"
+                              className="text-blue-600 hover:text-blue-900 flex items-center justify-end"
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View Bids
@@ -391,7 +391,7 @@ export const AdminPrivateRequests = () => {
                               setSelectedRequest(request);
                               setShowModal(true);
                             }}
-                            className="text-indigo-600 hover:text-indigo-900"
+                            className="text-indigo-600 hover:text-indigo-900 flex items-center justify-end"
                           >
                             View Details
                           </button>
