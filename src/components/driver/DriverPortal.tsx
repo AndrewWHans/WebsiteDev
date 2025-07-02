@@ -211,88 +211,91 @@ export const DriverPortal = () => {
             </div>
           )}
           <nav className="mt-5 px-2">
-            <a
-              href="#"
-              className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+            <button
+              className={`w-full text-left group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'overview' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab('overview');
                 setShowMobileMenu(false);
               }}
             >
               <LayoutDashboard className="mr-3 h-6 w-6" />
               Overview
-            </a>
-            <a
-              href="#"
-              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+            </button>
+            <button
+              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'routes' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab('routes');
                 setShowMobileMenu(false);
               }}
             >
               <Bus className="mr-3 h-6 w-6" />
               My Routes
-            </a>
-            <a
-              href="#"
-              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+            </button>
+            <button
+              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'scan' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab('scan');
                 setShowMobileMenu(false);
               }}
             >
               <QrCode className="mr-3 h-6 w-6" />
               Scan Tickets
-            </a>
-            <a
-              href="#"
-              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+            </button>
+            <button
+              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'profile' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab('profile');
                 setShowMobileMenu(false);
               }}
             >
               <UserIcon className="mr-3 h-6 w-6" />
               My Profile
-            </a>
-            <a
-              href="#"
-              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+            </button>
+            <button
+              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'pending-trips' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 setActiveTab('pending-trips');
                 setShowMobileMenu(false);
               }}
             >
               <Car className="mr-3 h-6 w-6" />
               Pending Trips
-            </a>
-            <a
-              href="#"
-              className="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            </button>
+            <button
+              className="w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              onClick={(e) => {
+                e.preventDefault();
+                // Settings functionality can be added here
+              }}
             >
               <Settings className="mr-3 h-6 w-6" />
               Settings
-            </a>
+            </button>
           </nav>
         </div>
 
