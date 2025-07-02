@@ -17,7 +17,6 @@ import {
   XCircle,
   User as UserIcon,
   BarChart3,
-  Settings,
   Bell,
   Car
 } from 'lucide-react';
@@ -32,7 +31,7 @@ export const DriverPortal = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'scan' | 'profile' | 'pending-trips'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'profile' | 'pending-trips'>('overview');
   const [upcomingRoutes, setUpcomingRoutes] = useState<any[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [completedRoutes, setCompletedRoutes] = useState(0);
@@ -258,19 +257,19 @@ export const DriverPortal = () => {
               My Routes
             </button>
             <button
-              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                activeTab === 'scan' 
+              className={`w-full text-left mt-1 ml-6 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'pending-trips' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
               onClick={(e) => {
                 e.preventDefault();
-                setActiveTab('scan');
+                setActiveTab('pending-trips');
                 setShowMobileMenu(false);
               }}
             >
-              <QrCode className="mr-3 h-6 w-6" />
-              Scan Tickets
+              <Car className="mr-3 h-6 w-6" />
+              Pending Trips
             </button>
             <button
               className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
@@ -286,31 +285,6 @@ export const DriverPortal = () => {
             >
               <UserIcon className="mr-3 h-6 w-6" />
               My Profile
-            </button>
-            <button
-              className={`w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                activeTab === 'pending-trips' 
-                  ? 'bg-indigo-50 text-indigo-600' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveTab('pending-trips');
-                setShowMobileMenu(false);
-              }}
-            >
-              <Car className="mr-3 h-6 w-6" />
-              Pending Trips
-            </button>
-            <button
-              className="w-full text-left mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              onClick={(e) => {
-                e.preventDefault();
-                // Settings functionality can be added here
-              }}
-            >
-              <Settings className="mr-3 h-6 w-6" />
-              Settings
             </button>
           </nav>
         </div>
@@ -389,13 +363,6 @@ export const DriverPortal = () => {
                                   ></div>
                                 </div>
                               </div>
-                              
-                              <button
-                                className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-md transition-colors flex items-center justify-center"
-                              >
-                                <QrCode size={16} className="mr-2" />
-                                Scan Tickets
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -403,38 +370,6 @@ export const DriverPortal = () => {
                     ))}
                   </div>
                 )}
-              </div>
-            ) : activeTab === 'scan' ? (
-              <div>
-                <div className="mb-6">
-                  <h1 className="text-2xl font-semibold text-gray-900">Scan Tickets</h1>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Scan passenger tickets to verify and check them in
-                  </p>
-                </div>
-                
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="text-center py-12">
-                    <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">Ticket Scanner</h3>
-                    <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto mb-6">
-                      Click the button below to open the camera and scan passenger tickets
-                    </p>
-                    <button
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-md transition-colors inline-flex items-center"
-                    >
-                      <QrCode size={18} className="mr-2" />
-                      Start Scanning
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="mt-6 bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Scans</h2>
-                  <div className="text-center py-8 text-gray-500">
-                    No recent scans
-                  </div>
-                </div>
               </div>
             ) : activeTab === 'profile' ? (
               <div>
@@ -524,7 +459,7 @@ export const DriverPortal = () => {
                   </p>
                 </div>
     
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {/* Routes Card */}
                   <div 
                     className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
@@ -602,32 +537,6 @@ export const DriverPortal = () => {
                       </div>
                     </div>
                   </div>
-    
-                  {/* Tickets Scanned Card */}
-                  <div 
-                    className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setActiveTab('scan')}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                          <QrCode className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">
-                              Tickets Scanned
-                            </dt>
-                            <dd className="flex items-baseline">
-                              <div className="text-2xl font-semibold text-gray-900">
-                                {scannedTickets}
-                              </div>
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
     
                 {/* Next Route Section */}
@@ -680,13 +589,6 @@ export const DriverPortal = () => {
                             </div>
                             
                             <div className="mt-3 flex space-x-2">
-                              <button
-                                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-md transition-colors flex items-center justify-center"
-                              >
-                                <QrCode size={16} className="mr-2" />
-                                Scan Tickets
-                              </button>
-                              
                               <button
                                 className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-md transition-colors flex items-center justify-center"
                               >
