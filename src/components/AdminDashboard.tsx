@@ -150,36 +150,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navigation */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="lg:hidden mr-2 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-              >
-                {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              <LayoutDashboard className="h-8 w-8 text-indigo-600" />
-              <span className="ml-2 text-xl font-semibold text-gray-900 hidden sm:inline">
-                Admin Dashboard
-              </span>
-            </div>
-            <div className="flex items-center">
-              <a
-                href="/"
-                className="mr-2 sm:mr-4 inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Back to Website</span>
-              </a>
-              <button
-                onClick={handleSignOut}
-                className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
-            </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold text-yellow-500 mr-3">ULimo</span>
+            <span className="text-lg font-semibold text-gray-900">Admin Dashboard</span>
+          </div>
+          
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+          >
+            {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          
+          {/* Desktop actions */}
+          <div className="hidden lg:flex items-center space-x-4">
+            <a
+              href="/"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Back to Website
+            </a>
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </button>
           </div>
         </div>
       </nav>
