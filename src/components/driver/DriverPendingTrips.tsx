@@ -50,15 +50,14 @@ export const DriverPendingTrips = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PrivateRequest | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
 
   useEffect(() => {
     loadRequests();
-  }, [statusFilter]);
+  }, []);
 
   const loadRequests = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('private_ride_requests')
         .select(`
           *,
@@ -69,14 +68,8 @@ export const DriverPendingTrips = () => {
             last_name
           )
         `)
+        .eq('status', 'pending')
         .order('created_at', { ascending: false });
-
-      // Filter by status if not showing all
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -201,10 +194,6 @@ export const DriverPendingTrips = () => {
     return request.user_id ? 'Registered' : 'Guest';
   };
 
-  const getStatusCount = (status: string) => {
-    return requests.filter(request => request.status === status).length;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -219,7 +208,7 @@ export const DriverPendingTrips = () => {
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Pending Trips</h1>
           <p className="mt-2 text-sm text-gray-700">
-            Manage private ride requests and trip assignments
+            Manage pending private ride requests
           </p>
         </div>
       </div>
@@ -231,42 +220,8 @@ export const DriverPendingTrips = () => {
         </div>
       )}
 
-      {/* Status Filter Tabs */}
-      <div className="mt-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {[
-            { key: 'pending', label: 'Pending', count: getStatusCount('pending') },
-            { key: 'confirmed', label: 'Confirmed', count: getStatusCount('confirmed') },
-            { key: 'in-progress', label: 'In Progress', count: getStatusCount('in-progress') },
-            { key: 'completed', label: 'Completed', count: getStatusCount('completed') },
-            { key: 'all', label: 'All', count: requests.length }
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                statusFilter === tab.key
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-              {tab.count > 0 && (
-                <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  statusFilter === tab.key
-                    ? 'bg-indigo-100 text-indigo-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
-
       {/* Requests Table */}
-      <div className="mt-8 flex flex-col">
+      <div className="mt-6">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle">
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
@@ -296,17 +251,14 @@ export const DriverPendingTrips = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {requests.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center">
                         <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900">No trips found</h3>
+                        <h3 className="text-lg font-medium text-gray-900">No pending trips</h3>
                         <p className="mt-1 text-sm text-gray-500">
-                          {statusFilter === 'all' 
-                            ? 'No private ride requests available.'
-                            : `No ${statusFilter} trips available.`
-                          }
+                          No pending private ride requests available.
                         </p>
                       </td>
                     </tr>
