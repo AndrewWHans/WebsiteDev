@@ -18,7 +18,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { PrivateRidePage } from './components/PrivateRidePage';
 import { VerifyTicketPage } from './components/VerifyTicketPage';
 import { AboutPage } from './components/AboutPage';
-import { DriverPortal } from './components/DriverPortal';
+import { DriverPortal } from './components/driver/DriverPortal';
 import { DealsPage } from './components/DealsPage';
 import { FeedbackPage } from './components/FeedbackPage';
 import { PageTransition } from './components/shared/PageTransition';
