@@ -457,71 +457,78 @@ export const AdminPrivateRequests = () => {
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-500 mb-2">Trip Details</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <Calendar className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-500">Date</p>
-                        <p className="font-medium">{formatDate(selectedRequest.pickup_date)}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column - Date/Time & Trip Info */}
+                    <div className="space-y-4">
+                      <div className="flex items-start">
+                        <Calendar className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-500">Date</p>
+                          <p className="font-medium">{formatDate(selectedRequest.pickup_date)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Clock className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-500">Time</p>
-                        <p className="font-medium">{formatTime(selectedRequest.pickup_time)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Users className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-500">Passengers</p>
-                        <p className="font-medium">{selectedRequest.passengers}</p>
-                      </div>
-                    </div>
-                    {selectedRequest.trip_type === 'round-trip' && selectedRequest.return_time && (
                       <div className="flex items-start">
                         <Clock className="w-5 h-5 text-gray-400 mt-1 mr-2" />
                         <div>
-                          <p className="text-sm text-gray-500">Return Time</p>
-                          <p className="font-medium">{formatTime(selectedRequest.return_time)}</p>
+                          <p className="text-sm text-gray-500">Time</p>
+                          <p className="font-medium">{formatTime(selectedRequest.pickup_time)}</p>
                         </div>
                       </div>
-                    )}
-                    <div className="flex items-start">
-                      <MapPin className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-500">Pickup Location</p>
-                        <p className="font-medium">{selectedRequest.pickup_location}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <MapPin className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      <div>
-                        <p className="text-sm text-gray-500">Dropoff Location</p>
-                        <p className="font-medium">{selectedRequest.dropoff_location}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      {selectedRequest.trip_type === 'one-way' ? (
-                        <ArrowRight className="w-5 h-5 text-gray-400 mt-1 mr-2" />
-                      ) : (
-                        <Repeat className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                      {selectedRequest.trip_type === 'round-trip' && selectedRequest.return_time && (
+                        <div className="flex items-start">
+                          <Clock className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                          <div>
+                            <p className="text-sm text-gray-500">Return Time</p>
+                            <p className="font-medium">{formatTime(selectedRequest.return_time)}</p>
+                          </div>
+                        </div>
                       )}
-                      <div>
-                        <p className="text-sm text-gray-500">Trip Type</p>
-                        <p className="font-medium capitalize">{selectedRequest.trip_type.replace('-', ' ')}</p>
-                      </div>
-                    </div>
-                    {selectedRequest.notes && (
                       <div className="flex items-start">
-                        <FileText className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        <Users className="w-5 h-5 text-gray-400 mt-1 mr-2" />
                         <div>
-                          <p className="text-sm text-gray-500">Additional Notes</p>
-                          <p className="font-medium">{selectedRequest.notes}</p>
+                          <p className="text-sm text-gray-500">Passengers</p>
+                          <p className="font-medium">{selectedRequest.passengers}</p>
                         </div>
                       </div>
-                    )}
+                      <div className="flex items-start">
+                        {selectedRequest.trip_type === 'one-way' ? (
+                          <ArrowRight className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        ) : (
+                          <Repeat className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        )}
+                        <div>
+                          <p className="text-sm text-gray-500">Trip Type</p>
+                          <p className="font-medium capitalize">{selectedRequest.trip_type.replace('-', ' ')}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Locations */}
+                    <div className="space-y-4">
+                      <div className="flex items-start">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-500">Pickup Location</p>
+                          <p className="font-medium">{selectedRequest.pickup_location}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                        <div>
+                          <p className="text-sm text-gray-500">Dropoff Location</p>
+                          <p className="font-medium">{selectedRequest.dropoff_location}</p>
+                        </div>
+                      </div>
+                      {selectedRequest.notes && (
+                        <div className="flex items-start">
+                          <FileText className="w-5 h-5 text-gray-400 mt-1 mr-2" />
+                          <div>
+                            <p className="text-sm text-gray-500">Additional Notes</p>
+                            <p className="font-medium">{selectedRequest.notes}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
