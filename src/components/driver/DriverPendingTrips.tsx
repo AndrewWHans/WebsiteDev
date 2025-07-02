@@ -13,7 +13,10 @@ import {
   XCircle,
   AlertTriangle,
   X,
-  Car
+  Car,
+  DollarSign,
+  Edit3,
+  Plus
 } from 'lucide-react';
 import { supabase, formatToEST, formatTimeToEST, parseAndFormatDate } from '../../lib/supabase';
 
@@ -42,6 +45,27 @@ type PrivateRequest = {
     first_name: string | null;
     last_name: string | null;
   } | null;
+  // Bidding fields
+  bidding_enabled: boolean;
+  accepted_bid_id: string | null;
+  min_bid_amount: number | null;
+  max_bid_amount: number | null;
+};
+
+type DriverBid = {
+  id: string;
+  ride_request_id: string;
+  driver_id: string;
+  bid_amount: number;
+  status: 'active' | 'accepted' | 'rejected' | 'expired';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  driver: {
+    first_name: string | null;
+    last_name: string | null;
+    name: string;
+  } | null;
 };
 
 export const DriverPendingTrips = () => {
@@ -50,10 +74,23 @@ export const DriverPendingTrips = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<PrivateRequest | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [bids, setBids] = useState<DriverBid[]>([]);
+  const [loadingBids, setLoadingBids] = useState(false);
+  const [showBidForm, setShowBidForm] = useState(false);
+  const [bidAmount, setBidAmount] = useState<string>('');
+  const [bidNotes, setBidNotes] = useState<string>('');
+  const [submittingBid, setSubmittingBid] = useState(false);
+  const [currentUserBid, setCurrentUserBid] = useState<DriverBid | null>(null);
 
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useEffect(() => {
+    if (selectedRequest) {
+      loadBids(selectedRequest.id);
+    }
+  }, [selectedRequest]);
 
   const loadRequests = async () => {
     try {
@@ -79,6 +116,119 @@ export const DriverPendingTrips = () => {
       setError('Failed to load requests');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBids = async (rideRequestId: string) => {
+    setLoadingBids(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('driver_bids')
+        .select(`
+          *,
+          driver:profiles(
+            first_name,
+            last_name,
+            name
+          )
+        `)
+        .eq('ride_request_id', rideRequestId)
+        .order('bid_amount', { ascending: true });
+
+      if (error) throw error;
+      
+      setBids(data || []);
+      
+      // Find current user's bid
+      const userBid = data?.find(bid => bid.driver_id === user.id);
+      setCurrentUserBid(userBid || null);
+      
+      if (userBid) {
+        setBidAmount(userBid.bid_amount.toString());
+        setBidNotes(userBid.notes || '');
+      } else {
+        setBidAmount('');
+        setBidNotes('');
+      }
+    } catch (err) {
+      console.error('Error loading bids:', err);
+      setError('Failed to load bids');
+    } finally {
+      setLoadingBids(false);
+    }
+  };
+
+  const handleSubmitBid = async () => {
+    if (!selectedRequest || !bidAmount) return;
+    
+    setSubmittingBid(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const amount = parseFloat(bidAmount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('Please enter a valid bid amount');
+      }
+
+      if (currentUserBid) {
+        // Update existing bid
+        const { error } = await supabase
+          .from('driver_bids')
+          .update({
+            bid_amount: amount,
+            notes: bidNotes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentUserBid.id);
+
+        if (error) throw error;
+      } else {
+        // Create new bid
+        const { error } = await supabase
+          .from('driver_bids')
+          .insert({
+            ride_request_id: selectedRequest.id,
+            driver_id: user.id,
+            bid_amount: amount,
+            notes: bidNotes || null
+          });
+
+        if (error) throw error;
+      }
+
+      // Reload bids
+      await loadBids(selectedRequest.id);
+      setShowBidForm(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error submitting bid:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit bid');
+    } finally {
+      setSubmittingBid(false);
+    }
+  };
+
+  const handleCancelBid = async () => {
+    if (!currentUserBid) return;
+    
+    try {
+      const { error } = await supabase
+        .from('driver_bids')
+        .delete()
+        .eq('id', currentUserBid.id);
+
+      if (error) throw error;
+
+      await loadBids(selectedRequest!.id);
+      setShowBidForm(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error canceling bid:', err);
+      setError('Failed to cancel bid');
     }
   };
 
@@ -241,6 +391,9 @@ export const DriverPendingTrips = () => {
                       Passengers
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Bids
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Status
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -251,7 +404,7 @@ export const DriverPendingTrips = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {requests.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={7} className="px-6 py-12 text-center">
                         <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900">No pending trips</h3>
                         <p className="mt-1 text-sm text-gray-500">
@@ -293,6 +446,14 @@ export const DriverPendingTrips = () => {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                           {request.passengers}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
+                            <span className="font-medium text-gray-900">
+                              {request.bidding_enabled ? 'Open for bids' : 'No bidding'}
+                            </span>
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
@@ -419,6 +580,187 @@ export const DriverPendingTrips = () => {
                   )}
                 </div>
               </div>
+
+              {/* Bidding Section */}
+              {selectedRequest.bidding_enabled && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700">Driver Bids</h4>
+                    {!currentUserBid && !showBidForm && (
+                      <button
+                        onClick={() => setShowBidForm(true)}
+                        className="flex items-center text-sm text-indigo-600 hover:text-indigo-900"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Place Bid
+                      </button>
+                    )}
+                    {currentUserBid && !showBidForm && (
+                      <button
+                        onClick={() => setShowBidForm(true)}
+                        className="flex items-center text-sm text-indigo-600 hover:text-indigo-900"
+                      >
+                        <Edit3 className="w-4 h-4 mr-1" />
+                        Update Bid
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Bid Form */}
+                  {showBidForm && (
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Bid Amount ($)
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <DollarSign className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={bidAmount}
+                              onChange={(e) => setBidAmount(e.target.value)}
+                              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter your bid amount"
+                            />
+                          </div>
+                          {selectedRequest.min_bid_amount && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Minimum bid: ${selectedRequest.min_bid_amount}
+                            </p>
+                          )}
+                          {selectedRequest.max_bid_amount && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Maximum bid: ${selectedRequest.max_bid_amount}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Notes (Optional)
+                          </label>
+                          <textarea
+                            value={bidNotes}
+                            onChange={(e) => setBidNotes(e.target.value)}
+                            rows={3}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="Add any additional notes about your bid..."
+                          />
+                        </div>
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={handleSubmitBid}
+                            disabled={submittingBid || !bidAmount}
+                            className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {submittingBid ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : currentUserBid ? (
+                              'Update Bid'
+                            ) : (
+                              'Submit Bid'
+                            )}
+                          </button>
+                          {currentUserBid && (
+                            <button
+                              onClick={handleCancelBid}
+                              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              Cancel Bid
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setShowBidForm(false)}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Current User's Bid */}
+                  {currentUserBid && !showBidForm && (
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-green-800">Your Bid</p>
+                          <p className="text-lg font-semibold text-green-900">${currentUserBid.bid_amount}</p>
+                          {currentUserBid.notes && (
+                            <p className="text-sm text-green-700 mt-1">{currentUserBid.notes}</p>
+                          )}
+                        </div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          currentUserBid.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                          currentUserBid.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {currentUserBid.status.charAt(0).toUpperCase() + currentUserBid.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* All Bids */}
+                  <div className="bg-gray-50 rounded-lg border border-gray-200">
+                    {loadingBids ? (
+                      <div className="p-4 text-center">
+                        <Loader2 className="w-6 h-6 text-gray-400 animate-spin mx-auto" />
+                        <p className="text-sm text-gray-500 mt-2">Loading bids...</p>
+                      </div>
+                    ) : bids.length === 0 ? (
+                      <div className="p-4 text-center">
+                        <DollarSign className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No bids yet</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {bids.map((bid) => (
+                          <div key={bid.id} className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {bid.driver?.first_name && bid.driver?.last_name
+                                      ? `${bid.driver.first_name} ${bid.driver.last_name}`
+                                      : bid.driver?.name || 'Unknown Driver'
+                                    }
+                                  </p>
+                                  {bid.id === currentUserBid?.id && (
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                      You
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-lg font-semibold text-gray-900">${bid.bid_amount}</p>
+                                {bid.notes && (
+                                  <p className="text-sm text-gray-600 mt-1">{bid.notes}</p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(bid.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                bid.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                bid.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                bid.status === 'expired' ? 'bg-gray-100 text-gray-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
