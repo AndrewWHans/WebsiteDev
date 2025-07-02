@@ -515,7 +515,10 @@ export const DriverPortal = () => {
     
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                   {/* Routes Card */}
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div 
+                    className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setActiveTab('routes')}
+                  >
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
@@ -538,7 +541,10 @@ export const DriverPortal = () => {
                   </div>
     
                   {/* Pending Trips Card */}
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div 
+                    className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setActiveTab('pending-trips')}
+                  >
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
@@ -561,7 +567,10 @@ export const DriverPortal = () => {
                   </div>
     
                   {/* Completed Routes Card */}
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div 
+                    className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setActiveTab('routes')}
+                  >
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
@@ -584,7 +593,10 @@ export const DriverPortal = () => {
                   </div>
     
                   {/* Tickets Scanned Card */}
-                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div 
+                    className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setActiveTab('scan')}
+                  >
                     <div className="p-5">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
