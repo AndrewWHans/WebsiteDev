@@ -336,41 +336,6 @@ export const DriverPendingTrips = () => {
             </div>
             
             <div className="p-6 space-y-6">
-              {/* Customer Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Customer Information</h4>
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Name</p>
-                      <p className="text-sm text-gray-900 font-semibold">
-                        {getCustomerName(selectedRequest)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Email</p>
-                      <p className="text-sm text-gray-900 font-semibold">{getCustomerEmail(selectedRequest)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Phone</p>
-                      <p className="text-sm text-gray-900 font-semibold">{selectedRequest.phone_number}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Customer Type</p>
-                      <p className="font-semibold">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          selectedRequest.user_id 
-                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                            : 'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
-                          {getCustomerType(selectedRequest)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Trip Details */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Trip Details</h4>
