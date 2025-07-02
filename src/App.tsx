@@ -18,6 +18,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { PrivateRidePage } from './components/PrivateRidePage';
 import { VerifyTicketPage } from './components/VerifyTicketPage';
 import { AboutPage } from './components/AboutPage';
+import { DriverPortal } from './components/DriverPortal';
 import { DealsPage } from './components/DealsPage';
 import { FeedbackPage } from './components/FeedbackPage';
 import { PageTransition } from './components/shared/PageTransition';
@@ -224,6 +225,11 @@ function App() {
           <Route path="/private-ride" element={
             <PageTransition loading={isLoading}>
               <PrivateRidePage />
+            </PageTransition>
+          } />
+          <Route path="/driver" element={
+            <PageTransition loading={isLoading}>
+              <DriverPortal />
             </PageTransition>
           } />
           <Route path="/" element={
