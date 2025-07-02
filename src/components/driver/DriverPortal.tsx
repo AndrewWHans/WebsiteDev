@@ -197,7 +197,7 @@ export const DriverPortal = () => {
         <div className={`${
           showMobileMenu 
             ? 'fixed inset-0 z-40 bg-white w-full transform translate-x-0 transition-transform duration-300 ease-in-out'
-            : 'fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:relative lg:w-64 bg-white shadow-sm'
+            : 'fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:relative lg:w-48 bg-white shadow-sm'
         }`}>
           {showMobileMenu && (
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
