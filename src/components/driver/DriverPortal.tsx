@@ -18,10 +18,12 @@ import {
   User as UserIcon,
   BarChart3,
   Settings,
-  Bell
+  Bell,
+  Car
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DriverAuthModal } from './DriverAuthModal';
+import { DriverPendingTrips } from './DriverPendingTrips';
 
 export const DriverPortal = () => {
   const navigate = useNavigate();
@@ -30,11 +32,12 @@ export const DriverPortal = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'scan' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'scan' | 'profile' | 'pending-trips'>('overview');
   const [upcomingRoutes, setUpcomingRoutes] = useState<any[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [completedRoutes, setCompletedRoutes] = useState(0);
   const [scannedTickets, setScannedTickets] = useState(0);
+  const [pendingTrips, setPendingTrips] = useState(0);
 
   // Check if user is logged in and has Driver role
   useEffect(() => {
@@ -71,6 +74,9 @@ export const DriverPortal = () => {
             // Load driver stats (placeholder)
             setCompletedRoutes(Math.floor(Math.random() * 10));
             setScannedTickets(Math.floor(Math.random() * 100));
+            
+            // Load pending trips count
+            loadPendingTripsCount();
           }
         } else {
           // No user, show auth modal
@@ -118,6 +124,21 @@ export const DriverPortal = () => {
       console.error('Error loading upcoming routes:', err);
     } finally {
       setLoadingRoutes(false);
+    }
+  };
+
+  const loadPendingTripsCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('private_ride_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+        
+      if (error) throw error;
+      
+      setPendingTrips(count || 0);
+    } catch (err) {
+      console.error('Error loading pending trips count:', err);
     }
   };
 
@@ -249,6 +270,21 @@ export const DriverPortal = () => {
             >
               <UserIcon className="mr-3 h-6 w-6" />
               My Profile
+            </a>
+            <a
+              href="#"
+              className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                activeTab === 'pending-trips' 
+                  ? 'bg-indigo-50 text-indigo-600' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+              onClick={() => {
+                setActiveTab('pending-trips');
+                setShowMobileMenu(false);
+              }}
+            >
+              <Car className="mr-3 h-6 w-6" />
+              Pending Trips
             </a>
             <a
               href="#"
@@ -458,6 +494,8 @@ export const DriverPortal = () => {
                   </div>
                 </div>
               </div>
+            ) : activeTab === 'pending-trips' ? (
+              <DriverPendingTrips />
             ) : (
               <div>
                 <div className="mb-6">
@@ -467,7 +505,7 @@ export const DriverPortal = () => {
                   </p>
                 </div>
     
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                   {/* Routes Card */}
                   <div className="bg-white overflow-hidden shadow rounded-lg">
                     <div className="p-5">
@@ -483,6 +521,29 @@ export const DriverPortal = () => {
                             <dd className="flex items-baseline">
                               <div className="text-2xl font-semibold text-gray-900">
                                 {upcomingRoutes.length}
+                              </div>
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+    
+                  {/* Pending Trips Card */}
+                  <div className="bg-white overflow-hidden shadow rounded-lg">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+                          <Car className="h-6 w-6 text-yellow-600" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">
+                              Pending Trips
+                            </dt>
+                            <dd className="flex items-baseline">
+                              <div className="text-2xl font-semibold text-gray-900">
+                                {pendingTrips}
                               </div>
                             </dd>
                           </dl>
