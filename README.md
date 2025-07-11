@@ -37,6 +37,7 @@ Our company website
 
     d. Install Docker desktop
     https://docs.docker.com/desktop/setup/install
+    start docker desktop
 
     e. Install Supabase
     https://supabase.com/docs/guides/local-development
