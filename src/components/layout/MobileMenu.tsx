@@ -12,6 +12,7 @@ import {
   Users,
   Info,
   MessageSquare,
+  Car,
   Crown
 } from 'lucide-react';
 
@@ -59,12 +60,12 @@ export function MobileMenu({
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
             { icon: <Home size={20} />, label: "Home", path: "/" },
+            { icon: <Car size={20} />, label: "Private Ride", path: "/private-ride" },
             { icon: <Bus size={20} />, label: "Shuttles", path: "/shuttles" },
             { icon: <Ticket size={20} />, label: "My Tickets", path: "/tickets", requiresAuth: true },
             { icon: <Users size={20} />, label: "Refer & Earn", path: "/refer" },
             { icon: <Tag size={20} />, label: "Deals", path: "/deals" },
             { icon: <Info size={20} />, label: "About", path: "/about" },
-            { icon: <Crown size={20} />, label: "Private Ride", path: "/private-ride" },
             { icon: <MessageSquare size={20} />, label: "Feedback", path: "/feedback" }
           ].map((item, index) => (
             (!item.requiresAuth || user) && (

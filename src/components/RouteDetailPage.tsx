@@ -10,6 +10,7 @@ import { RouteHeader } from './routedetails/RouteHeader';
 import { RouteDetails } from './routedetails/RouteDetails';
 import { PassengersList } from './routedetails/PassengersList';
 import { BookingForm } from './routedetails/BookingForm';
+import { AddonsCheckoutPage } from './routedetails/AddonsCheckoutPage';
 import { SuccessModal } from './routedetails/SuccessModal';
 import { AuthModal } from '../components/AuthModal';
 import { DealCard } from './deals/DealCard';
@@ -51,6 +52,12 @@ export const RouteDetailPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'wallet' | 'card'>('card');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeBookings, setActiveBookings] = useState<number>(0);
+  const [showAddonsPage, setShowAddonsPage] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+  const [selectedDeals, setSelectedDeals] = useState<any[]>([]);
+  const [referralDiscount, setReferralDiscount] = useState<{amount: number, type: string}>({amount: 0, type: 'percent'});
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [referralApplied, setReferralApplied] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if we're returning from Stripe checkout
@@ -409,6 +416,68 @@ export const RouteDetailPage = () => {
     }
   };
 
+  const handleProceedToAddons = () => {
+    setShowAddonsPage(true);
+    // No user check needed here - we'll check at checkout time
+    
+    // Get referral information from the BookingForm component
+    const bookingForm = document.querySelector('[data-booking-form]');
+    if (bookingForm) {
+      const referralCodeValue = bookingForm.getAttribute('data-referral-code');
+      const referralDiscountAmount = parseFloat(bookingForm.getAttribute('data-referral-discount-amount') || '0');
+      const referralDiscountType = bookingForm.getAttribute('data-referral-discount-type') || 'percent';
+      const isReferralApplied = bookingForm.getAttribute('data-referral-applied') === 'true';
+      
+      if (referralCodeValue && isReferralApplied) {
+        setReferralCode(referralCodeValue);
+        setReferralDiscount({
+          amount: referralDiscountAmount,
+          type: referralDiscountType
+        });
+        setReferralApplied(isReferralApplied);
+      }
+    }
+  };
+
+  const handleBackFromAddons = () => {
+    setShowAddonsPage(false);
+  };
+
+  const handleCompleteCheckout = (addons: any[], deals: any[], total: number) => {
+    // Check if user is logged in before proceeding
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    
+    setSelectedAddons(addons);
+    setSelectedDeals(deals);
+    
+    // Here you would normally process the payment
+    // For now, we'll just show the success modal
+    
+    // Create booking details for success modal
+    setBookingDetails({
+      id: 'temp-id', // This would be the actual booking ID from the database
+      route: `${route.pickup?.name} to ${route.dropoff?.name}`,
+      date: formatDate(route.date),
+      time: formatTime(selectedTimeSlot || ''),
+      quantity: selectedQuantity,
+      price: route.price,
+      total: total,
+      paymentMethod: selectedPaymentMethod
+    });
+    
+    // Show success modal
+    setShowSuccessModal(true);
+    
+    // Trigger confetti effect
+    triggerConfetti();
+    
+    // Reset add-ons page
+    setShowAddonsPage(false);
+  };
+
   // Add this function to handle successful authentication
   const handleAuthSuccess = (newUser: any) => {
     setUser(newUser);
@@ -448,6 +517,28 @@ export const RouteDetailPage = () => {
 
   const progressPercentage = Math.min(100, Math.round((activeBookings / route.min_threshold) * 100));
   const isConfirmed = activeBookings >= route.min_threshold;
+  
+  if (showAddonsPage) {
+    return (
+      <AddonsCheckoutPage
+        route={route}
+        selectedTimeSlot={selectedTimeSlot || ''}
+        selectedQuantity={selectedQuantity}
+        calculateTotal={calculateTotal}
+        onBack={handleBackFromAddons}
+        onComplete={handleCompleteCheckout}
+        formatTime={formatTime}
+        formatDate={formatDate}
+        user={user}
+        referralDiscount={referralDiscount}
+        referralCode={referralCode}
+        referralApplied={referralApplied}
+        referralDiscount={referralDiscount}
+        referralCode={referralCode}
+        referralApplied={referralApplied}
+      />
+    );
+  }
 
   return (
     <motion.div 
@@ -490,11 +581,8 @@ export const RouteDetailPage = () => {
               passengerProfiles={passengerProfiles}
               totalPassengers={activeBookings}
             />
-            
-            {/* Related Deals Section */}
-            <RelatedDeals city={route.city} routeId={route.id} user={user} />
           </div>
-          
+            
           {/* Right Column: Booking Options */}
           <div className="lg:col-span-1 space-y-4 sm:space-y-6 relative z-10">
             {/* Booking Card */}
@@ -520,9 +608,11 @@ export const RouteDetailPage = () => {
               setSelectedPaymentMethod={setSelectedPaymentMethod}
               onSignIn={() => setShowAuthModal(true)}
               setBookingDetails={setBookingDetails}
+              onProceedToAddons={handleProceedToAddons}
               setShowSuccessModal={setShowSuccessModal}
               triggerConfetti={triggerConfetti}
               loadRouteDetails={loadRouteDetails}
+              setBookingStatus={setBookingStatus}
             />
           </div>
         </div>

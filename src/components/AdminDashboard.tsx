@@ -11,10 +11,11 @@ import {
   BarChart3,
   LogOut,
   Loader2,
-  QrCode,
+  QrCode, 
   MessageSquare,
   Menu,
   X,
+  Link as LinkIcon,
   Award
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -25,7 +26,8 @@ import { AdminDeals } from './AdminDeals';
 import { QRScannerPage } from './routes/QRScannerPage';
 import { AdminPrivateRequests } from './AdminPrivateRequests';
 import { AdminFeedback } from './feedback/AdminFeedback';
-import { PointsManager } from './points/PointsManager';
+import { PointsManager } from './points/PointsManager'; 
+import { ReferralCodesManager } from './referrals/ReferralCodesManager';
 
 type AdminDashboardProps = {
   user: any;
@@ -41,7 +43,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     pointValue: 0.02
   });
   const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'routes' | 'deals' | 'users' | 'private-requests' | 'analytics' | 'scan' | 'points' | 'feedback'>('overview');
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'routes' | 'deals' | 'users' | 'private-requests' | 'analytics' | 'scan' | 'points' | 'feedback' | 'referrals'>('overview');
 
   // Load overview metrics
   React.useEffect(() => {
@@ -290,7 +292,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
               <QrCode className="mr-3 h-6 w-6" />
               Scan Tickets
             </a>
-            <a
+            <a 
               href="#"
               className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
                 activeTab === 'points' 
@@ -298,18 +300,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
               onClick={() => setActiveTab('points')}
+              aria-disabled="true"
+              style={{ opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' }}
             >
               <Award className="mr-3 h-6 w-6" />
               Miles Manager
-            </a>
+            </a> 
             <a
               href="#"
               className={`mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                activeTab === 'feedback' 
+                activeTab === 'referrals' 
                   ? 'bg-indigo-50 text-indigo-600' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
-              onClick={() => setActiveTab('feedback')}
+              onClick={() => setActiveTab('referrals')} 
+            >
+              <LinkIcon className="mr-3 h-6 w-6" />
+              Discount Codes
+            </a>
+            <a
+              href="#"
+              className="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 opacity-50 cursor-not-allowed"
+              aria-disabled="true"
+              style={{ pointerEvents: 'none' }}
             >
               <MessageSquare className="mr-3 h-6 w-6" />
               Feedback
@@ -338,11 +351,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             ) : activeTab === 'analytics' ? (
               <AdminAnalytics />
             ) : activeTab === 'points' ? (
-              <PointsManager pointValue={metrics.pointValue} />
+              <div className="p-6 text-center text-gray-500">Miles Manager is currently unavailable.</div>
             ) : activeTab === 'feedback' ? (
               <AdminFeedback />
             ) : activeTab === 'scan' ? (
               <QRScannerPage />
+            ) : activeTab === 'referrals' ? (
+              <ReferralCodesManager />
             ) : (
               <div>
                 <div className="mb-6">

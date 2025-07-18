@@ -126,16 +126,19 @@ export const DriverAuthModal: React.FC<DriverAuthModalProps> = ({ isOpen, onClos
           .from('profiles')
           .select('role')
           .eq('id', signInData.user.id)
-          .single();
+          .maybeSingle();
           
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          throw new Error('Error checking user permissions');
+        }
         
-        if (profile.role !== 'Driver') {
+        if (!profile || profile.role !== 'Driver') {
           throw new Error('Access denied. This portal is for drivers only.');
         }
         
         // Ensure profile exists
-        await ensureProfile(signInData.user.id, signInData.user.email || '');
+        await ensureProfile(signInData.user.id, signInData.user.email || '', signInData.user);
         
         // Call the onAuthSuccess callback with the user data
         if (onAuthSuccess) {

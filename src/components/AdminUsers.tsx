@@ -573,7 +573,7 @@ export const AdminUsers = () => {
                               ? `${user.first_name} ${user.last_name}` 
                               : user.name}
                           </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-gray-500">{user.email}</div>
                         </div>
                       </div>
                     </td>
@@ -593,6 +593,15 @@ export const AdminUsers = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.point_balance} <span className="text-gray-500">/ {user.total_points_earned}</span>
+                      {user.role === 'Promoter' && (
+                        <button
+                          onClick={() => window.open(`/promoter-dashboard?userId=${user.id}`, '_blank')}
+                          className="mt-2 text-indigo-600 hover:text-indigo-900 inline-flex items-center text-xs bg-indigo-50 px-2 py-1 rounded-md"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                          View Promoter Portal
+                        </button>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -813,6 +822,15 @@ export const AdminUsers = () => {
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
+                    {selectedUser.role === 'Promoter' && (
+                      <button
+                        onClick={() => window.open(`/promoter-dashboard?userId=${selectedUser.id}`, '_blank')}
+                        className="mt-2 text-indigo-600 hover:text-indigo-900 inline-flex items-center text-sm"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        View Promoter Portal
+                      </button>
+                    )}
                   </div>
                 </div>
                 

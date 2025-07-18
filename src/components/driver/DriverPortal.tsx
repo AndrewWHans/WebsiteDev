@@ -20,7 +20,7 @@ import {
   Bell,
   Car
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase.tsx';
 import { DriverAuthModal } from './DriverAuthModal';
 import { DriverPendingTrips } from './DriverPendingTrips';
 
@@ -44,7 +44,14 @@ export const DriverPortal = () => {
       setLoading(true);
       
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('Error getting user:', userError);
+          setShowAuthModal(true);
+          setLoading(false);
+          return;
+        }
         
         if (user) {
           // Check if user has Driver role
@@ -52,11 +59,16 @@ export const DriverPortal = () => {
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
             
-          if (profileError) throw profileError;
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            setShowAuthModal(true);
+            setLoading(false);
+            return;
+          }
           
-          if (profile.role !== 'Driver') {
+          if (!profile || profile.role !== 'Driver') {
             // Not a driver, show auth modal
             setUser(null);
             setUserProfile(null);

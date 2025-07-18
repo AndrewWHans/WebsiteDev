@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Minus, Plus, Loader2, Check, Share2, AlertTriangle, Wallet, CreditCard, Wind, DollarSign } from 'lucide-react';
+import { Minus, Plus, Loader2, Check, Share2, AlertTriangle, Wallet, CreditCard, Ticket, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase'; // Adjust path as needed
 import { motion } from 'framer-motion';
-import { PaymentLoadingModal } from './PaymentLoadingModal';
+import { PaymentLoadingModal } from './PaymentLoadingModal'; 
 
 // Add interface for booking details
 interface BookingDetails {
@@ -52,12 +52,14 @@ type BookingFormProps = {
   triggerConfetti: () => void;
   bookingDetails: BookingDetails | null;
   setBookingDetails: (details: BookingDetails | null) => void;
+  onProceedToAddons: () => void;
 };
 
 // Add this constant near the top of the file with other constants/state declarations
 const EPSILON = 0.001;
+const STRIPE_MIN_AMOUNT = 0.50;
 
-export const BookingForm: React.FC<BookingFormProps> = ({
+export const BookingForm = ({
   route,
   user,
   userCredits,
@@ -83,17 +85,21 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   setShowSuccessModal,
   triggerConfetti,
   bookingDetails,
-  setBookingDetails
-}) => {
+  setBookingDetails,
+  onProceedToAddons
+}: BookingFormProps) => {
   const [processingPayment, setProcessingPayment] = React.useState(false);
   const [paymentMessage, setPaymentMessage] = React.useState('');
   const [showPaymentLoading, setShowPaymentLoading] = React.useState(false);
   const [milesValue, setMilesValue] = useState<number>(0.02);
   const [milesAmount, setMilesAmount] = useState<number>(0);
-  const [milesDiscount, setMilesDiscount] = useState<number>(0);
-  const [applyingMiles, setApplyingMiles] = useState<boolean>(false);
-  const [milesApplied, setMilesApplied] = useState<boolean>(false);
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [referralDiscount, setReferralDiscount] = useState<{amount: number, type: string}>({amount: 0, type: 'percent'});
+  const [applyingReferral, setApplyingReferral] = useState<boolean>(false);
+  const [referralApplied, setReferralApplied] = useState<boolean>(false);
   const [processingMilesPayment, setProcessingMilesPayment] = useState<boolean>(false);
+  const [milesApplied, setMilesApplied] = useState<boolean>(false);
+  const milesDiscount = milesApplied ? milesAmount * milesValue : 0;
 
   // Format date helper function
   const formatDate = (dateString: string) => {
@@ -128,18 +134,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     loadMilesValue();
   }, []);
   
-  // Calculate miles discount when miles amount changes
+  // Reset referral when quantity or time slot changes
   useEffect(() => {
-    const discount = milesAmount * milesValue;
-    setMilesDiscount(discount);
-  }, [milesAmount, milesValue]);
-  
-  // Reset miles when quantity or time slot changes
-  useEffect(() => {
-    if (milesApplied) {
-      setMilesApplied(false);
-      setMilesAmount(0);
-      setMilesDiscount(0);
+    if (referralApplied) {
+      setReferralApplied(false);
+      setReferralCode('');
+      setReferralDiscount({amount: 0, type: 'percent'});
     }
   }, [selectedQuantity, selectedTimeSlot]);
 
@@ -208,13 +208,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     setPaymentMessage('Processing your payment...');
     
     try {
-      // Format the date for display in the UI
-      const routeDate = new Date(route.date + 'T12:00:00');
-      const formattedDate = routeDate.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
+      // Calculate the final price including all discounts
+      const totalAmount = getDiscountedTotal();
 
       // Call the Edge Function to create Stripe checkout session
       const response = await fetch(
@@ -230,6 +225,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             routeId: route.id,
             timeSlot: selectedTimeSlot,
             quantity: selectedQuantity,
+            totalAmount: totalAmount, // Send the fully discounted total amount
+            referralCode: referralApplied ? referralCode : '',
+            referralDiscount: referralApplied ? referralDiscount.amount : 0,
+            discountType: referralApplied ? referralDiscount.type : '',
             milesAmount: milesApplied ? milesAmount : 0,
             milesDiscount: milesApplied ? milesDiscount : 0
           }),
@@ -258,58 +257,98 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     }
   };
 
-  const handleApplyMiles = async () => {
-    if (!user || milesAmount <= 0) return;
+  const handleApplyReferral = async () => {
+    if (!user) {
+      // If not logged in, show auth modal
+      onSignIn();
+      return;
+    }
     
-    setApplyingMiles(true);
+    if (!user || !referralCode.trim()) return;
+    
+    setApplyingReferral(true);
+    setPaymentMessage(''); // Clear any previous error messages
     
     try {
-      // Validate miles amount
-      if (milesAmount > userMiles) {
-        throw new Error(`You only have ${userMiles} miles available`);
+      // Validate referral code and check its status
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .select('code, discount_percentage, discount_type, name, status')
+        .eq('code', referralCode.trim())
+        .limit(1);
+        
+      if (error) {
+        throw new Error('Error validating discount code. Please try again.');
       }
       
-      // Calculate discount
-      const discount = milesAmount * milesValue;
+      // Check if discount code exists
+      if (!data || data.length === 0) {
+        throw new Error('Invalid discount code');
+      }
       
-      // Calculate total
+      const codeData = data[0];
+      
+      // Validate discount code status
+      if (codeData.status === 'inactive' || codeData.status === 'deleted') {
+        throw new Error('Invalid discount code');
+      }
+      
+      // Only proceed if status is 'active'
+      if (codeData.status === 'inactive' || codeData.status === 'deleted' || codeData.status !== 'active') {
+        throw new Error('Invalid discount code');
+      }
+      
       const total = calculateTotal();
+      let discount = 0;
       
-      // Check if discount approximately equals total (full payment)
-      const isFullPayment = Math.abs(discount - total) < EPSILON;
-      
-      // Modified validation for partial payments
-      if (!isFullPayment) {
-        const remainingAmount = total - discount;
-        if (remainingAmount > 0 && remainingAmount < 0.50) {
-          // Calculate the maximum miles that can be applied while keeping the total at least $0.50
-          const maxAllowedDiscount = total - 0.50;
-          const maxAllowedMiles = Math.floor(maxAllowedDiscount / milesValue);
-          
-          throw new Error(`For partial payment, please use ${maxAllowedMiles} miles or less to keep the card payment at least $0.50, or use enough miles to cover the full amount.`);
-        }
+      if (codeData.discount_type === 'percent') {
+        discount = total * (codeData.discount_percentage / 100);
+      } else if (codeData.discount_type === 'amount') {
+        discount = Math.min(total, codeData.discount_percentage);
+      } else if (codeData.discount_type === 'free_shipping') {
+        // Not applicable for rides, but could be used for future features
+        discount = 0;
       }
       
-      // Set miles discount
-      setMilesDiscount(discount);
-      setMilesApplied(true);
+      // Set referral discount
+      setReferralDiscount({
+        amount: discount,
+        type: codeData.discount_type
+      });
+      setReferralApplied(true);
     } catch (error: any) {
-      console.error('Error applying miles:', error);
+      console.error('Error applying referral code:', error);
       setPaymentMessage(error.message);
+      
+      // Clear any partial application state on error
+      setReferralApplied(false);
+      setReferralDiscount({amount: 0, type: 'percent'});
     } finally {
-      setApplyingMiles(false);
+      setApplyingReferral(false);
     }
   };
   
-  const handleRemoveMiles = () => {
-    setMilesApplied(false);
-    setMilesAmount(0);
-    setMilesDiscount(0);
+  const handleRemoveReferral = () => {
+    setReferralApplied(false);
+    setReferralCode('');
+    setReferralDiscount({amount: 0, type: 'percent'});
   };
   
   const getDiscountedTotal = () => {
     const total = calculateTotal();
-    return milesApplied ? Math.max(0, total - milesDiscount) : total;
+    let discountedTotal = total;
+    
+    // Apply referral discount if applicable
+    if (referralApplied) {
+      discountedTotal = Math.max(0, discountedTotal - referralDiscount.amount);
+    }
+    
+    // Apply miles discount if applicable
+    if (milesApplied) {
+      discountedTotal = Math.max(0, discountedTotal - milesDiscount);
+    }
+    
+    return discountedTotal;
   };
 
   const handleMilesOnlyPayment = async () => {
@@ -353,7 +392,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           total_price: 0, // Free because fully covered by miles
           status: 'confirmed',
           booking_date: new Date().toISOString(),
-          miles_redeemed: milesAmount
+          miles_redeemed: milesAmount,
+          discount_code: referralApplied ? referralCode : null,
+          discount_amount: referralApplied ? referralDiscount.amount : null,
+          discount_type: referralApplied ? referralDiscount.type : null
         })
         .select('id')
         .single();
@@ -413,22 +455,113 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     }
   };
 
+
   const handleBookNow = () => {
     if (!user) {
+      // If not logged in, show auth modal
       onSignIn();
       return;
     }
     
-    // If miles fully cover the total, process directly without Stripe
-    if (milesApplied && milesDiscount >= calculateTotal()) {
+    if (!selectedTimeSlot) {
+      setPaymentMessage('Please select a time slot');
+      return;
+    }
+    
+    // Calculate the final total after all discounts
+    const finalTotal = getDiscountedTotal();
+    const originalTotal = calculateTotal();
+    
+    // Priority 1: If miles fully cover the original total, process with miles only
+    if (milesApplied && milesDiscount >= originalTotal) {
       handleMilesOnlyPayment();
       return;
     }
     
-    if (selectedPaymentMethod === 'card') {
-      handleStripeCheckout();
-    } else {
-      originalHandleBookNow();
+    // Priority 2: If final total is below Stripe minimum, process as free booking
+    if (finalTotal < STRIPE_MIN_AMOUNT) {
+      handleFreeBooking();
+      return;
+    }
+    
+    // Priority 3: Proceed with Stripe checkout for amounts >= $0.50
+    handleStripeCheckout();
+  };
+
+  const handleFreeBooking = async () => {
+    if (!user || !selectedTimeSlot) return;
+    
+    setBookingStatus('processing');
+    setPaymentMessage('Processing your free booking...');
+    
+    try {
+      // Create ticket booking for free
+      const { data: bookingResponse, error: bookingError } = await supabase
+        .from('ticket_bookings')
+        .insert({
+          user_id: user.id,
+          route_id: route.id,
+          time_slot: selectedTimeSlot,
+          quantity: selectedQuantity,
+          total_price: 0,
+          status: 'confirmed',
+          booking_date: new Date().toISOString(),
+          discount_code: referralApplied ? referralCode : null,
+          discount_amount: referralApplied ? referralDiscount.amount : null,
+          discount_type: referralApplied ? referralDiscount.type : null,
+          miles_redeemed: milesApplied ? milesAmount : null
+        })
+        .select('id')
+        .single();
+      
+      if (bookingError) throw bookingError;
+      
+      // Redeem miles if applicable
+      if (milesApplied && milesAmount > 0) {
+        const { error: milesError } = await supabase.rpc('redeem_miles', {
+          p_user_id: user.id,
+          p_miles_amount: milesAmount,
+          p_description: `Miles redeemed for free ticket: ${route.pickup?.name} to ${route.dropoff?.name}`,
+          p_reference_id: bookingResponse.id
+        });
+        
+        if (milesError) throw milesError;
+      }
+      
+      // Update route's tickets_sold count
+      const { error: routeUpdateError } = await supabase
+        .from('routes')
+        .update({ tickets_sold: route.tickets_sold + selectedQuantity })
+        .eq('id', route.id);
+      
+      if (routeUpdateError) throw routeUpdateError;
+      
+      // Create booking details for success modal
+      setBookingDetails({
+        id: bookingResponse.id,
+        route: `${route.pickup?.name} to ${route.dropoff?.name}`,
+        date: formatDate(route.date),
+        time: formatTime(selectedTimeSlot),
+        quantity: selectedQuantity,
+        price: route.price,
+        total: 0,
+        paymentMethod: 'free'
+      });
+      
+      // Handle success
+      setBookingStatus('success');
+      setShowSuccessModal(true);
+      
+      // Trigger confetti effect
+      triggerConfetti();
+      
+      // Reload route details to update metrics
+      loadRouteDetails();
+      
+    } catch (error: any) {
+      console.error('Error processing free booking:', error);
+      setPaymentMessage(error.message || 'Failed to process free booking. Please try again.');
+      setBookingStatus('error');
     }
   };
 
@@ -438,6 +571,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
       className="bg-gray-900 rounded-xl border border-gold/30 sticky top-4"
+     data-booking-form
+     data-referral-code={referralCode}
+     data-referral-discount-amount={referralDiscount.amount}
+     data-referral-discount-type={referralDiscount.type}
+     data-referral-applied={referralApplied.toString()}
     >
       <div className="p-4 sm:p-6 border-b border-gray-800">
         <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Book Your Tickets</h2>
@@ -525,155 +663,86 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           </div>
         </div>
 
-        {/* Payment Method */}
-        <div className="mb-4 sm:mb-6">
-          <label className="block text-gray-300 text-xs sm:text-sm font-medium mb-1 sm:mb-2">
-            Payment Method
-          </label>
-          <div className="space-y-3">
-            {/* Card Payment Option */}
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => setSelectedPaymentMethod('card')}
-              className={`w-full bg-gray-800 p-3 rounded-lg border ${
-                selectedPaymentMethod === 'card' 
-                  ? 'border-gold' 
-                  : 'border-gray-700'
-              } flex items-center hover:border-gold/50 transition-colors`}
-            >
-              <div className="bg-emerald-500/20 p-1.5 sm:p-2 rounded-full mr-2 sm:mr-3">
-                <CreditCard className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div className="text-left">
-                <p className="text-white font-medium text-sm sm:text-base">Pay with Card</p>
-                <p className="text-xs sm:text-sm text-gray-400">Secure via Stripe</p>
-              </div>
-            </motion.button>
-          </div>
-        </div>
+        
         
         {/* Miles Redemption Section */}
         <div className="mb-4 sm:mb-6 bg-gray-800/80 rounded-lg p-3 sm:p-4 border border-gold/20">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center">
               <div className="bg-gold/20 p-1.5 sm:p-2 rounded-full mr-2 sm:mr-3">
-                <Wind className="h-4 w-4 sm:h-5 sm:w-5 text-gold" />
+                <Ticket className="h-4 w-4 sm:h-5 sm:w-5 text-gold" />
               </div>
               <div>
-                <p className="text-white font-medium text-sm sm:text-base">ULimo Miles</p>
-                <p className="text-xs sm:text-sm text-gray-400">
-                  Balance: <span className="text-gold">{userMiles}</span> miles
-                </p>
+                <p className="text-white font-medium text-sm sm:text-base">Discount Code</p>
+                
               </div>
             </div>
           </div>
           
-          {milesApplied ? (
+          {referralApplied ? (
             <div className="mt-2 sm:mt-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-300 text-xs sm:text-sm">Miles applied:</span>
-                <span className="text-gold font-medium text-xs sm:text-sm">{milesAmount.toLocaleString()} miles</span>
+                <span className="text-gray-300 text-xs sm:text-sm">Code applied:</span>
+                <span className="text-gold font-medium text-xs sm:text-sm">{referralCode}</span>
               </div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-gray-300 text-xs sm:text-sm">Discount:</span>
                 <span className="text-emerald-400 font-medium text-xs sm:text-sm">
-                  -${milesDiscount.toFixed(2)}
-                  {milesDiscount >= calculateTotal()}
+                  -${referralDiscount.amount.toFixed(2)} 
                 </span>
               </div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={handleRemoveMiles}
+                onClick={handleRemoveReferral}
                 className="w-full bg-gray-700 hover:bg-gray-600 text-white py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors"
               >
-                Remove Miles
+                Remove Code
               </motion.button>
             </div>
           ) : (
             <div className="mt-2 sm:mt-3">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                 <input
-                  type="number"
-                  min="0"
-                  max={userMiles}
-                  value={milesAmount || ''}
-                  onChange={(e) => setMilesAmount(parseInt(e.target.value) || 0)}
-                  className="block w-full bg-gray-700 border border-gray-600 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 text-white text-sm focus:ring-1 focus:ring-gold focus:border-gold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  placeholder="Enter miles amount"
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  className="block w-full bg-gray-700 border border-gray-600 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 text-white text-sm focus:ring-1 focus:ring-gold focus:border-gold"
+                  placeholder="Enter discount code"
                 />
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    // Calculate the maximum miles that can be applied based on the total price
-                    const totalPrice = calculateTotal();
-                    const maxApplicableMiles = Math.floor(totalPrice / milesValue);
-                    
-                    // If partial payment would result in less than $0.50 remaining, adjust the max miles
-                    const minRemainingForStripe = 0.50;
-                    let adjustedMaxMiles = maxApplicableMiles;
-                    
-                    // If applying all miles would leave less than $0.50 but not cover the full amount
-                    const remainingAfterMaxMiles = totalPrice - (maxApplicableMiles * milesValue);
-                    if (remainingAfterMaxMiles > 0 && remainingAfterMaxMiles < minRemainingForStripe) {
-                      // Either use enough miles to make it free, or keep at least $0.50 for Stripe
-                      if (userMiles >= Math.ceil(totalPrice / milesValue)) {
-                        // User has enough miles to cover the full amount
-                        adjustedMaxMiles = Math.ceil(totalPrice / milesValue);
-                      } else {
-                        // Adjust to keep at least $0.50 for Stripe
-                        adjustedMaxMiles = Math.floor((totalPrice - minRemainingForStripe) / milesValue);
-                      }
-                    }
-                    
-                    // Use the smaller of user's miles balance or adjusted max applicable miles
-                    const maxMiles = Math.min(userMiles, adjustedMaxMiles);
-                    setMilesAmount(maxMiles);
-                  }}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap"
-                >
-                  Max
-                </motion.button>
               </div>
               
-              {milesAmount > 0 && (
-                <div className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
-                  {milesAmount} miles = ${(milesAmount * milesValue).toFixed(2)} discount
-                </div>
-              )}
-              
-              {/* Add warning message for invalid miles amount */}
-              {milesAmount > 0 && 
-               calculateTotal() - (milesAmount * milesValue) > 0 && 
-               calculateTotal() - (milesAmount * milesValue) < 0.50 && (
-                <div className="text-xs sm:text-sm text-amber-400 mb-2 sm:mb-3 flex items-start">
-                  <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0 mt-0.5" />
-                  <span>Discounted total must be at least $0.50 or cover the full amount</span>
+              {referralCode && (
+                <div className="text-xs sm:text-sm text-gray-400 mb-2">
+                  
                 </div>
               )}
               
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={handleApplyMiles}
+                onClick={handleApplyReferral}
                 disabled={
-                  milesAmount <= 0 || 
-                  milesAmount > userMiles || 
-                  applyingMiles ||
-                  (Math.abs(milesAmount * milesValue - calculateTotal()) > EPSILON &&
-                   calculateTotal() - (milesAmount * milesValue) > 0 && 
-                   calculateTotal() - (milesAmount * milesValue) < 0.50)
+                  !referralCode.trim() || 
+                  applyingReferral
                 }
                 className="w-full bg-gold hover:bg-yellow-400 text-black py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {applyingMiles ? (
+                {applyingReferral ? (
                   <>
                     <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" />
                     Applying...
                   </>
                 ) : (
-                  'Apply Miles'
+                  'Apply Code'
                 )}
               </motion.button>
+            </div>
+          )}
+          {milesApplied && milesDiscount > 0 && (
+            <div className="flex justify-between mb-1 sm:mb-2">
+              <span className="text-gray-300 text-sm">
+                Miles Discount ({milesAmount} miles)
+              </span>
+              <span className="text-emerald-400 text-sm">-${milesDiscount.toFixed(2)}</span>
             </div>
           )}
         </div>
@@ -689,10 +758,14 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <span className="text-gray-300 text-sm">Quantity</span>
           <span className="text-white text-sm">x {selectedQuantity}</span>
         </div>
-        {milesApplied && (
+        {referralApplied && (
           <div className="flex justify-between mb-1 sm:mb-2">
-            <span className="text-gray-300 text-sm">Miles Discount</span>
-            <span className="text-emerald-400 text-sm">-${milesDiscount.toFixed(2)}</span>
+            <span className="text-gray-300 text-sm">
+              {referralDiscount.type === 'percent' 
+                ? `Referral Discount (${Math.round(referralDiscount.amount / calculateTotal() * 100)}%)` 
+                : 'Referral Discount'}
+            </span>
+            <span className="text-emerald-400 text-sm">-${referralDiscount.amount.toFixed(2)}</span>
           </div>
         )}
         <div className="flex justify-between text-base sm:text-lg font-bold mt-3 sm:mt-4">
@@ -722,10 +795,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           whileTap={{ scale: 0.98 }}
           onClick={handleBookNow}
           disabled={
-            bookingStatus === 'processing' ||
-            processingPayment || 
-            processingMilesPayment ||
-            !selectedTimeSlot ||
+            bookingStatus === 'processing' || 
+            processingPayment ||
+            processingMilesPayment || 
+            !selectedTimeSlot || 
             getAvailableSeats() < selectedQuantity
           }
           className="w-full bg-gold hover:bg-yellow-400 text-black font-bold py-2.5 sm:py-3 rounded-lg mb-3 sm:mb-4 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-glow text-sm sm:text-base"
@@ -738,7 +811,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               Booked Successfully!
             </>
           ) : milesApplied && milesDiscount >= calculateTotal() ? (
-            'Book with Miles'
+            'Pay with Miles'
           ) : (
             'Book Now'
           )}

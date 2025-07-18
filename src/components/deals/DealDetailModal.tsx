@@ -22,6 +22,8 @@ type DealDetailModalProps = {
   user: any;
 };
 
+const STRIPE_MIN_AMOUNT = 0.50;
+
 export const DealDetailModal: React.FC<DealDetailModalProps> = ({
   isOpen,
   onClose,
@@ -115,7 +117,23 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
 
   const getDiscountedTotal = () => {
     const total = calculateTotal();
-    return milesApplied ? Math.max(0, total - milesDiscount) : total;
+   let discountedTotal = total;
+   
+   // Apply referral discount if applicable
+   if (referralApplied) {
+     if (referralDiscount.type === 'percent') {
+       discountedTotal -= total * (referralDiscount.amount / 100);
+     } else {
+       discountedTotal -= referralDiscount.amount;
+     }
+   }
+   
+   // Apply miles discount if applicable
+   if (milesApplied) {
+     discountedTotal = Math.max(0, discountedTotal - milesDiscount);
+   }
+   
+   return Math.max(0, discountedTotal);
   };
 
   const handleApplyMiles = async () => {
@@ -190,7 +208,10 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
             dealId: deal.id,
             quantity: quantity,
             milesAmount: milesApplied ? milesAmount : 0,
-            milesDiscount: milesApplied ? milesDiscount : 0
+            milesDiscount: milesApplied ? milesDiscount : 0,
+           referralCode: referralApplied ? referralCode : '',
+           referralDiscount: referralApplied ? referralDiscount.amount : 0,
+           discountType: referralApplied ? referralDiscount.type : ''
           }),
         }
       );
@@ -320,18 +341,22 @@ export const DealDetailModal: React.FC<DealDetailModalProps> = ({
   };
 
   const handlePurchase = () => {
-    // If deal is free, claim it directly without payment
-    if (calculateTotal() === 0) {
-      handleFreeDealClaim();
-      return;
-    }
+    const originalTotal = calculateTotal();
+    const finalTotal = getDiscountedTotal();
     
-    // If miles fully cover the total, process directly without Stripe
-    if (milesApplied && milesDiscount >= calculateTotal()) {
+    // Priority 1: If miles fully cover the original total, process with miles only
+    if (milesApplied && milesDiscount >= originalTotal) {
       handleMilesOnlyPayment();
       return;
     }
     
+    // Priority 2: If final total is below Stripe minimum, claim as free
+    if (finalTotal < STRIPE_MIN_AMOUNT) {
+      handleFreeDealClaim();
+      return;
+    }
+    
+    // Priority 3: Proceed with Stripe checkout for amounts >= $0.50
     handleStripeCheckout();
   };
 

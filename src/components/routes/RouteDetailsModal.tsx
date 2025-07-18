@@ -22,6 +22,10 @@ type BookingData = {
   status: string;
   created_at: string;
   payment_method: 'wallet' | 'card';
+  discount_code?: string;
+  discount_amount?: number;
+  discount_type?: string;
+  promoter_username?: string;
 };
 
 type TimeSlotMetrics = {
@@ -45,6 +49,7 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundedCount, setRefundedCount] = useState<number>(0);
   const [isPastRoute, setIsPastRoute] = useState<boolean>(false);
+  const [discountCodeSummary, setDiscountCodeSummary] = useState<{[key: string]: {tickets: number, revenue: number}}>({});
 
   useEffect(() => {
     loadRouteDetails();
@@ -88,14 +93,57 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
           time_slot,
           quantity,
           total_price,
+          discount_code,
+          discount_amount,
+          discount_type,
           status,
-          created_at
+          created_at,
+          stripe_payment_intent_id
         `)
         .eq('route_id', routeId)
         .order('created_at', { ascending: false });
 
       if (bookingsError) throw bookingsError;
 
+      // Get promoter usernames for bookings with discount codes
+      const bookingsWithPromoters = await Promise.all(
+        (bookingsData || []).map(async (booking) => {
+          if (booking.discount_code) {
+            try {
+              const { data: referralCode, error: referralError } = await supabase
+                .from('referral_codes')
+                .select(`
+                  user:profiles!referral_codes_user_id_fkey (
+                    first_name,
+                    last_name,
+                    name,
+                    email
+                  )
+                `)
+                .eq('code', booking.discount_code)
+                .single();
+
+              if (!referralError && referralCode?.user) {
+                const promoterName = referralCode.user.first_name && referralCode.user.last_name
+                  ? `${referralCode.user.first_name} ${referralCode.user.last_name}`
+                  : referralCode.user.name || referralCode.user.email;
+                
+                return {
+                  ...booking,
+                  promoter_username: promoterName
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching promoter for discount code:', booking.discount_code, error);
+            }
+          }
+          
+          return {
+            ...booking,
+            promoter_username: null
+          };
+        })
+      );
       // Load payment links (card payments)
       const { data: paymentLinksData, error: paymentLinksError } = await supabase
         .from('payment_links')
@@ -120,6 +168,11 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
 
       // Calculate metrics from bookings
       bookingsData?.forEach((booking) => {
+       // Only process bookings for time slots that exist in the route
+       if (!metrics[booking.time_slot]) {
+         return;
+       }
+       
         if (booking.status === 'confirmed' || booking.status === 'completed') {
           metrics[booking.time_slot].sold += booking.quantity;
           metrics[booking.time_slot].available -= booking.quantity;
@@ -147,7 +200,7 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
       setTimeSlotMetrics(metrics);
 
       // Set bookings with payment method
-      setBookings(bookingsData?.map(booking => ({
+      setBookings(bookingsWithPromoters?.map(booking => ({
         ...booking,
         payment_method: 'wallet' // For now, all existing bookings are wallet payments
       })) || []);
@@ -375,29 +428,29 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
             <h3 className="font-semibold text-gray-900 mb-4">Time Slot Metrics</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {route.time_slots.map((slot: string) => (
-                <div key={slot} className="bg-gray-50 rounded-lg p-4">
+               <div key={slot} className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center">
                       <Clock className="w-5 h-5 text-gray-400 mr-2" />
                       <span className="font-medium">{formatTime(slot)}</span>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      timeSlotMetrics[slot].available === 0
+                     timeSlotMetrics[slot]?.available === 0
                         ? 'bg-red-100 text-red-800'
                         : 'bg-green-100 text-green-800'
                     }`}>
-                      {timeSlotMetrics[slot].available} seats left
+                     {timeSlotMetrics[slot]?.available || 0} seats left
                     </span>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Tickets Sold:</span>
-                      <span className="font-medium">{timeSlotMetrics[slot].sold}</span>
+                     <span className="font-medium">{timeSlotMetrics[slot]?.sold || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Revenue:</span>
                       <span className="font-medium text-green-600">
-                        ${timeSlotMetrics[slot].revenue.toFixed(2)}
+                       ${(timeSlotMetrics[slot]?.revenue || 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -405,6 +458,47 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
               ))}
             </div>
           </div>
+          
+          {/* Discount Code Usage Summary */}
+          {Object.keys(discountCodeSummary).length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Discount Code Usage</h3>
+              <div className="bg-gray-50 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Discount Code
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tickets Sold
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Revenue
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Object.entries(discountCodeSummary).map(([code, data]) => (
+                      <tr key={code} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-xs">
+                            {code}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {data.tickets}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${data.revenue.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Bookings List */}
           <div>
@@ -450,6 +544,12 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Discount Code
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Promoter Username
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Booked At
@@ -502,6 +602,18 @@ export const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({ routeId, o
                             {booking.status === 'pending' && <Clock4 className="w-3 h-3 mr-1" />}
                             {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {booking.discount_code ? (
+                            <span className="font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-xs">
+                              {booking.discount_code}
+                            </span>
+                          ) : (
+                            'N/A'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {booking.promoter_username || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDateTime(booking.created_at)}

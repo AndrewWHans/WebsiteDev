@@ -1,24 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Bus, Users, Sparkles } from 'lucide-react';
 
-type PaymentLoadingModalProps = {
+interface PaymentLoadingModalProps {
   isOpen: boolean;
   progressPercentage: number;
   minThreshold: number;
   ticketsSold: number;
   quantity: number;
-};
+}
 
-export const PaymentLoadingModal: React.FC<PaymentLoadingModalProps> = ({
+export const PaymentLoadingModal = ({
   isOpen,
   progressPercentage,
   minThreshold,
   ticketsSold,
-  quantity = 1
-}) => {
-  // Don't render if not open
-  if (!isOpen) return null;
-  
+  quantity
+}: PaymentLoadingModalProps) => {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [showProjection, setShowProjection] = useState(false);
   const [projectedProgress, setProjectedProgress] = useState(0);
@@ -26,6 +23,8 @@ export const PaymentLoadingModal: React.FC<PaymentLoadingModalProps> = ({
   const [displayedTicketCount, setDisplayedTicketCount] = useState(0);
 
   useEffect(() => {
+    let animationId: number | null = null;
+    
     if (isOpen) {
       // Reset states when modal opens
       setCurrentProgress(0);
@@ -38,7 +37,7 @@ export const PaymentLoadingModal: React.FC<PaymentLoadingModalProps> = ({
       const currentPercentValue = Math.max(0, Math.min(100, (ticketsSold / minThreshold) * 100));
       
       // Calculate the projected percentage (after user's purchase with correct quantity)
-      const projectedPercentValue = Math.max(0, Math.min(100, ((ticketsSold + quantity) / minThreshold) * 100));
+      const projectedPercentValue = Math.max(0, Math.min(100, ((ticketsSold + (quantity || 1)) / minThreshold) * 100));
       
       // Skip the first animation and immediately show the projected progress
       const animationDuration = 1500; // Longer animation for more impact
@@ -63,24 +62,28 @@ export const PaymentLoadingModal: React.FC<PaymentLoadingModalProps> = ({
         setProjectedProgress(incrementValue);
         
         // Animate the ticket count from current to projected
-        const ticketCountValue = ticketsSold + (quantity * easeOut);
+        const ticketCountValue = ticketsSold + ((quantity ?? 1) * easeOut);
         setDisplayedTicketCount(Math.round(ticketCountValue));
         
         if (progress < 1) {
-          requestAnimationFrame(animateProjection);
+          animationId = requestAnimationFrame(animateProjection);
         }
       };
       
-      requestAnimationFrame(animateProjection);
-      
-      return () => {
-        setCurrentProgress(0);
-        setProjectedProgress(0);
-        setShowProjection(false);
-        setDisplayedTicketCount(0);
-      };
+      animationId = requestAnimationFrame(animateProjection);
     }
-  }, [isOpen, minThreshold, ticketsSold, quantity]);
+    
+    return () => {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isOpen, minThreshold, ticketsSold, quantity ?? 1]);
+
+  // Don't render if not open - moved after hooks
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">

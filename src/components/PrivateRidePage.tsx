@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Check,
   Mail,
+  Tag,
   User
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -30,6 +31,7 @@ type FormData = {
   dropoffLocation: string;
   passengers: number;
   notes: string;
+  discountCode: string;
   // Fields for anonymous users
   firstName: string;
   lastName: string;
@@ -61,6 +63,7 @@ export const PrivateRidePage = () => {
       tripType: 'one-way',
       countryCode: POPULAR_COUNTRIES[0].code,
       phone: '',
+      discountCode: '',
       firstName: '',
       lastName: '',
       email: ''
@@ -206,6 +209,7 @@ export const PrivateRidePage = () => {
         pickup_time: formattedTime,
         return_date: formattedReturnDate,
         return_time: formattedReturnTime,
+        discount_code: data.discountCode || null,
         trip_type: data.tripType,
         pickup_location: data.pickupLocation,
         dropoff_location: data.dropoffLocation,
@@ -634,7 +638,25 @@ export const PrivateRidePage = () => {
                   )}
                 </div>
               </div>
-
+            
+            {/* Discount Code */}
+            <div className="mb-4">
+              <label className="block text-white mb-2 font-medium">
+                Discount Code
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Tag className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  {...register('discountCode')}
+                  className="block w-full pl-10 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-1 focus:ring-gold focus:border-gold"
+                  placeholder="Enter discount code (optional)"
+                />
+              </div>
+            </div>
+            
               {/* Additional Notes */}
               <div>
                 <label className="block text-white mb-2 font-medium">

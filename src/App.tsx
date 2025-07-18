@@ -19,11 +19,13 @@ import { PrivateRidePage } from './components/PrivateRidePage';
 import { VerifyTicketPage } from './components/VerifyTicketPage';
 import { AboutPage } from './components/AboutPage';
 import { DriverPortal } from './components/driver/DriverPortal';
+import { PromoterDashboard } from './components/promoter/PromoterDashboard';
 import { DealsPage } from './components/DealsPage';
 import { FeedbackPage } from './components/FeedbackPage';
 import { PageTransition } from './components/shared/PageTransition';
 import { LoadingScreen } from './components/shared/LoadingScreen';
 import { supabase } from './lib/supabase';
+import { ensureProfile } from './lib/supabase';
 
 function App() {
   // Scroll to top on route change
@@ -46,7 +48,7 @@ function App() {
   const location = useLocation();
   const isAdminRoute = window.location.pathname.startsWith('/admin-dashboard');
   const isDriverRoute = location.pathname.startsWith('/driver');
-
+  const isPromoterRoute = window.location.pathname.includes('/promoter-dashboard');
   // Handle base tag
   useEffect(() => {
     // Add base tag when not on admin routes
@@ -76,21 +78,55 @@ function App() {
   // Auth state management
   useEffect(() => {
     const initAuth = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      try {
+        // Check if Supabase is available before making requests
+        try {
+          const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            if (userError.message === 'Auth session missing!') {
+              console.log('No user session found - user is not logged in');
+            } else {
+              console.error('Error getting user:', userError);
+            }
+          }
       
-      if (currentUser) {
-        setUser(currentUser);
-        
-        // Fetch user role when user is found
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .single();
+          if (currentUser) {
+            setUser(currentUser);
+            
+            // Ensure profile exists before fetching role
+            try {
+              await ensureProfile(currentUser.id, currentUser.email || '', currentUser);
+            } catch (error) {
+              console.error('Error ensuring profile during init:', error);
+              // Don't fail completely if profile creation fails
+            }
+            
+            // Fetch user role when user is found
+            try {
+              const { data: profiles, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', currentUser.id)
+                .maybeSingle();
 
-        if (!error && profile) {
-          setUserRole(profile.role);
+              if (!error && profiles) {
+                setUserRole(profiles.role);
+              } else if (error) {
+                console.error('Error fetching user role:', error);
+              }
+            } catch (roleError) {
+              console.error('Error fetching user role:', roleError);
+              // Continue without role if fetch fails
+            }
+          }
+        } catch (networkError) {
+          console.error('Network error connecting to Supabase:', networkError);
+          console.warn('Supabase connection failed. Please ensure local Supabase is running with "npx supabase start"');
+          // Continue loading the app even if Supabase is unavailable
         }
+      } catch (error) {
+        console.error('Error in initAuth:', error);
       }
       
       setIsLoading(false);
@@ -104,13 +140,24 @@ function App() {
       
       // If user signed in, fetch their role
       if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) setUserRole(data.role);
+        // Ensure profile exists before fetching role with error handling
+        ensureProfile(session.user.id, session.user.email || '', session.user)
+          .then(() => {
+            return supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .maybeSingle();
+          })
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUserRole(profile.role);
+            }
+          })
+          .catch(error => {
+            console.error('Error ensuring profile or fetching role:', error);
+            console.warn('Profile operations failed. App will continue with limited functionality.');
+            // Don't prevent the app from working if profile operations fail
           });
       } else {
         setUserRole(null);
@@ -147,7 +194,9 @@ function App() {
   if (showWallet && user) return <WalletPage onBack={() => setShowWallet(false)} />;
   if (showTickets && user) return <MyTicketsPage />;
   if (isAdminRoute && user) return <AdminDashboard user={user} />;
-
+  if (isPromoterRoute && user) {
+    return <PromoterDashboard user={user} />;
+  }
   if (isLoading) {
     return <LoadingScreen />;
   }

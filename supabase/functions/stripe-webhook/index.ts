@@ -38,6 +38,9 @@ serve(async (req) => {
 
       // Get metadata from the session
       const { userId, routeId, dealId, timeSlot, quantity, totalAmount, milesAmount, milesDiscount, type } = session.metadata
+      const referralCode = session.metadata.referralCode || ''
+      const referralDiscount = session.metadata.referralDiscount || ''
+      const discountType = session.metadata.discountType || ''
       const stripeSessionId = session.id
       const stripePaymentIntentId = session.payment_intent
 
@@ -149,7 +152,40 @@ serve(async (req) => {
 
         console.log('Payment processed successfully:', {
           paymentLinkId: paymentLink.id,
-          verified: verifyData
+          verified: verifyData,
+          discount_code: referralCode && referralCode.trim() !== '' ? referralCode : null,
+          discount_amount: referralDiscount && referralDiscount.trim() !== '' ? parseFloat(referralDiscount) : null,
+          discount_type: discountType && discountType.trim() !== '' ? discountType : null
+        })
+        
+        // Create the ticket booking with discount information
+        const { error: bookingError } = await supabaseClient
+          .from('ticket_bookings')
+          .insert({
+            user_id: userId,
+            route_id: routeId,
+            time_slot: timeSlot,
+            quantity: parseInt(quantity),
+            total_price: parseFloat(totalAmount),
+            status: 'confirmed',
+            booking_date: new Date().toISOString(),
+            stripe_payment_intent_id: stripePaymentIntentId,
+            miles_redeemed: milesAmountInt,
+            discount_code: referralCode && referralCode.trim() !== '' ? referralCode : null,
+            discount_amount: referralDiscount && referralDiscount.trim() !== '' ? parseFloat(referralDiscount) : null,
+            discount_type: discountType && discountType.trim() !== '' ? discountType : null
+          })
+        
+        if (bookingError) {
+          console.error('Error creating ticket booking:', bookingError)
+          throw bookingError
+        }
+        
+        console.log('Ticket booking created with discount data:', {
+          bookingId: 'created',
+          discount_code: referralCode && referralCode.trim() !== '' ? referralCode : null,
+          discount_amount: referralDiscount && referralDiscount.trim() !== '' ? parseFloat(referralDiscount) : null,
+          discount_type: discountType && discountType.trim() !== '' ? discountType : null
         })
       }
     }

@@ -60,6 +60,17 @@ export function Navigation({
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gold transition-all duration-300 group-hover:w-full"></span>
           </Link>
           <Link 
+            to="/private-ride" 
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigation('/private-ride');
+            }}
+            className="text-gray-300 hover:text-gold transition-colors duration-300 font-medium relative group"
+          >
+            <span>Private Ride</span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gold transition-all duration-300 group-hover:w-full"></span>
+          </Link>
+          <Link 
             to="/shuttles" 
             onClick={(e) => {
               e.preventDefault();
@@ -160,6 +171,21 @@ export function Navigation({
                         >
                           <LayoutDashboard size={16} />
                           <span>Admin Dashboard</span>
+                        </button>
+                      </>
+                    )}
+                    {userRole === 'Promoter' && (
+                      <>
+                        <div className="border-t border-gray-700 my-1"></div>
+                        <button
+                          onClick={() => {
+                            handleNavigation('/promoter-dashboard');
+                            setShowAccountMenu(false);
+                          }}
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 hover:text-gold transition-all duration-200"
+                        >
+                          <LayoutDashboard size={16} />
+                          <span>Promoter Dashboard</span>
                         </button>
                       </>
                     )}

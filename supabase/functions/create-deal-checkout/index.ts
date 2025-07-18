@@ -55,6 +55,9 @@ serve(async (req) => {
       totalAmount = Math.max(0, totalAmount - milesDiscount);
     }
     
+   // Get discount code from request if provided
+   const { referralCode = '', referralDiscount = 0, discountType = 'percent' } = await req.json();
+   
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: [
@@ -84,6 +87,9 @@ serve(async (req) => {
         milesAmount: milesAmount.toString(),
         milesDiscount: milesDiscount.toString(),
         type: 'deal' // To distinguish from route payments
+       referralCode,
+       referralDiscount: referralDiscount.toString(),
+       discountType
       }
     });
     
