@@ -86,6 +86,11 @@ function App() {
           if (userError) {
             if (userError.message === 'Auth session missing!') {
               console.log('No user session found - user is not logged in');
+            } else if (userError.message === 'Invalid Refresh Token: Refresh Token Not Found' || userError.message.includes('Session from session_id claim in JWT does not exist')) {
+              console.log('Invalid refresh token found - clearing session');
+              await supabase.auth.signOut();
+              setUser(null);
+              setUserRole(null);
             } else {
               console.error('Error getting user:', userError);
             }
@@ -93,14 +98,6 @@ function App() {
       
           if (currentUser) {
             setUser(currentUser);
-            
-            // Ensure profile exists before fetching role
-            try {
-              await ensureProfile(currentUser.id, currentUser.email || '', currentUser);
-            } catch (error) {
-              console.error('Error ensuring profile during init:', error);
-              // Don't fail completely if profile creation fails
-            }
             
             // Fetch user role when user is found
             try {
@@ -110,14 +107,39 @@ function App() {
                 .eq('id', currentUser.id)
                 .maybeSingle();
 
-              if (!error && profiles) {
-                setUserRole(profiles.role);
-              } else if (error) {
+              if (error) {
                 console.error('Error fetching user role:', error);
+                setUserRole('Error');
+              } else if (profiles) {
+                // Profile exists, set the role
+                setUserRole(profiles.role);
+              } else {
+                // No profile found (profiles is null), try to create it
+                console.log('Profile not found, attempting to create...');
+                try {
+                  await ensureProfile(currentUser.id, currentUser.email || '', currentUser);
+                  
+                  // Retry fetching role after profile creation
+                  const { data: newProfiles, error: retryError } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', currentUser.id)
+                    .maybeSingle();
+                    
+                  if (!retryError && newProfiles) {
+                    setUserRole(newProfiles.role);
+                  } else {
+                    console.error('Error fetching role after profile creation:', retryError);
+                    setUserRole('Error');
+                  }
+                } catch (profileError) {
+                  console.error('Error creating profile during init:', profileError);
+                  setUserRole('Error');
+                }
               }
             } catch (roleError) {
               console.error('Error fetching user role:', roleError);
-              // Continue without role if fetch fails
+              setUserRole('Error');
             }
           }
         } catch (networkError) {
@@ -140,24 +162,42 @@ function App() {
       
       // If user signed in, fetch their role
       if (session?.user) {
-        // Ensure profile exists before fetching role with error handling
-        ensureProfile(session.user.id, session.user.email || '', session.user)
-          .then(() => {
-            return supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .maybeSingle();
-          })
-          .then(({ data: profile }) => {
-            if (profile) {
+        // Fetch user role first, create profile if needed
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data: profile, error: profileError }) => {
+            if (!profileError && profile) {
               setUserRole(profile.role);
+            } else if (profileError?.code === 'PGRST116') {
+              // Profile doesn't exist, create it
+              console.log('Profile not found for authenticated user, creating...');
+              return ensureProfile(session.user.id, session.user.email || '', session.user)
+                .then(() => {
+                  // Retry fetching role after profile creation
+                  return supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+                })
+                .then(({ data: newProfile }) => {
+                  if (newProfile) {
+                    setUserRole(newProfile.role);
+                  } else {
+                    console.error('Profile creation succeeded but role fetch failed');
+                    setUserRole('Error');
+                  }
+                });
+            } else {
+              console.error('Error fetching user role:', profileError);
+              setUserRole('Error');
             }
           })
           .catch(error => {
-            console.error('Error ensuring profile or fetching role:', error);
-            console.warn('Profile operations failed. App will continue with limited functionality.');
-            // Don't prevent the app from working if profile operations fail
+            console.error('Error in auth state change handler:', error);
           });
       } else {
         setUserRole(null);

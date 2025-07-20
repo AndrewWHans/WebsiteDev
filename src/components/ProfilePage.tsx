@@ -75,19 +75,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      setProfileData(profile);
-      setValue('first_name', profile.first_name || '');
-      setValue('last_name', profile.last_name || '');
-      setValue('phone_number', profile.phone_number || '');
-      setValue('college', profile.college || '');
-      setValue('greek_life', profile.greek_life || '');
-      
-      if (profile.profile_picture_url) {
-        setPreviewUrl(profile.profile_picture_url);
+      if (profile) {
+        setProfileData(profile);
+        setValue('first_name', profile.first_name || '');
+        setValue('last_name', profile.last_name || '');
+        setValue('phone_number', profile.phone_number || '');
+        setValue('college', profile.college || '');
+        setValue('greek_life', profile.greek_life || '');
+        
+        if (profile.profile_picture_url) {
+          setPreviewUrl(profile.profile_picture_url);
+        }
+      } else {
+        // Profile doesn't exist, reset form fields
+        setProfileData(null);
+        setValue('first_name', '');
+        setValue('last_name', '');
+        setValue('phone_number', '');
+        setValue('college', '');
+        setValue('greek_life', '');
+        setPreviewUrl(null);
       }
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -190,7 +201,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
 
       console.log('Updating profile with picture URL:', profilePictureUrl);
 
-      const { error: updateError } = await supabase
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
           first_name: data.first_name,
@@ -201,27 +212,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
           profile_picture_url: profilePictureUrl,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (updateError) {
         console.error('Profile update error:', updateError);
         throw updateError;
       }
 
+      // Verify the update was successful
+      if (!updatedProfile) {
+        throw new Error('Profile update returned no data - update may have failed');
+      }
+
+      console.log('Profile updated successfully:', updatedProfile);
+
       setSuccess('Profile updated successfully!');
       // Update the profileData state to reflect changes
-      setProfileData(prev => ({
-        ...prev,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        phone_number: data.phone_number || null,
-        college: data.college || null,
-        greek_life: data.greek_life || null,
-        profile_picture_url: profilePictureUrl
-      }));
+      setProfileData(updatedProfile);
       
       // Clear the profilePicture state since it's been uploaded
       setProfilePicture(null);
+      
+      // Reload the profile to ensure we have the latest data
+      await loadProfile();
     } catch (err: any) {
       console.error('Error updating profile:', err);
       setError(err.message || 'Failed to update profile. Please try again.');

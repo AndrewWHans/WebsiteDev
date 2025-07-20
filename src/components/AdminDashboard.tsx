@@ -106,10 +106,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
           .from('profiles')
           .select('role')
           .eq('id', user?.id)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
-        setIsAdmin(profile?.role === 'Admin');
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else if (profile) {
+          setIsAdmin(profile.role === 'Admin');
+        } else {
+          // No profile found
+          setIsAdmin(false);
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);

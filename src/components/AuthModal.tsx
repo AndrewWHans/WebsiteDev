@@ -163,27 +163,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     setSuccess(null);
     
     try {
+      // Validate form data before submission
+      if (!data.email || !data.firstName || !data.lastName || !data.password) {
+        throw new Error('All required fields must be filled out');
+      }
+
       // Check if passwords match
       if (data.password !== data.confirmPassword) {
         throw new Error('Passwords do not match');
       }
 
+      // Validate password strength
+      if (data.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
       // Format phone number
-      const fullNumber = `${selectedCountry.dial}${data.phone.replace(/[^\d]/g, '')}`;
-      const phoneNumber = parsePhoneNumber(fullNumber, selectedCountry.code as CountryCode);
-      const formattedPhone = phoneNumber.format('E.164');
+      let formattedPhone = null;
+      if (data.phone && data.phone.trim()) {
+        try {
+          const fullNumber = `${selectedCountry.dial}${data.phone.replace(/[^\d]/g, '')}`;
+          const phoneNumber = parsePhoneNumber(fullNumber, selectedCountry.code as CountryCode);
+          formattedPhone = phoneNumber.format('E.164');
+        } catch (phoneError) {
+          console.warn('Phone number formatting failed:', phoneError);
+          // Continue without phone number rather than failing
+          formattedPhone = null;
+        }
+      }
       
       // Prepare user metadata with phone and referral code if provided
       const metadata: any = {
-        phone_number: formattedPhone,
         first_name: data.firstName,
-        last_name: data.lastName
+        last_name: data.lastName,
+        name: `${data.firstName} ${data.lastName}`
       };
+      
+      // Only add phone number if it was successfully formatted
+      if (formattedPhone) {
+        metadata.phone_number = formattedPhone;
+      }
       
       // Add referral code to metadata if provided
       if (referralCode) {
         metadata.referral_code = referralCode;
       }
+      
+      console.log('Attempting user signup with metadata:', metadata);
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
@@ -194,25 +220,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       });
       
       if (signUpError) {
+        console.error('Supabase auth signup error:', signUpError);
         throw signUpError;
       }
       
       // If the user was created successfully and we have a user object
       if (signUpData?.user) {
         try {
-          const { error: profileError } = await supabase
+          console.log('User created successfully in Supabase Auth:', {
+            userId: signUpData.user.id,
+            email: signUpData.user.email,
+            emailConfirmed: signUpData.user.email_confirmed_at,
+            userMetadata: signUpData.user.user_metadata
+          });
+          
+          // Wait a moment for the database trigger to create the profile
+          console.log('Waiting for automatic profile creation...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Check if profile was created by trigger
+          const { data: autoProfile, error: profileCheckError } = await supabase
             .from('profiles')
-            .update({ 
-              phone_number: formattedPhone,
-              first_name: data.firstName,
-              last_name: data.lastName
-            })
-            .eq('id', signUpData.user.id);
-            
-          if (profileError) {
-            console.error('Error updating profile with name and phone:', profileError);
+            .select('*')
+            .eq('id', signUpData.user.id)
+            .maybeSingle();
+          
+          if (profileCheckError) {
+            console.warn('Error checking for auto-created profile:', profileCheckError);
           }
-      
+          
+          if (!autoProfile) {
+            // Profile wasn't auto-created, create it manually
+            console.log('Auto-creation failed, creating profile manually...');
+            const profileUser = {
+              ...signUpData.user,
+              user_metadata: {
+                ...signUpData.user.user_metadata,
+                first_name: data.firstName,
+                last_name: data.lastName,
+                name: `${data.firstName} ${data.lastName}`,
+                ...(formattedPhone && { phone_number: formattedPhone }),
+                ...(referralCode && { referral_code: referralCode })
+              }
+            };
+            
+            const profile = await ensureProfile(
+              signUpData.user.id, 
+              signUpData.user.email || '', 
+              profileUser
+            );
+            
+            console.log('Profile created manually:', profile);
+          } else {
+            console.log('Profile was auto-created successfully:', autoProfile);
+          }
+          
           // Call the onAuthSuccess callback with the user data
           if (onAuthSuccess) {
             onAuthSuccess(signUpData.user);
@@ -221,10 +283,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           // Close the modal since the user is now signed in
           onClose();
           return;
-        } catch (err) {
-          console.error('Error updating profile with phone number:', err);
+        } catch (profileError) {
+          console.error('Error creating profile:', profileError);
+          
+          // User is authenticated but profile creation failed
+          console.warn('Profile creation failed but user is authenticated');
+          
+          // Still proceed with authentication success
+          if (onAuthSuccess) {
+            onAuthSuccess(signUpData.user);
+          }
+          
+          onClose();
+          return;
         }
       }
+      
+      // Log the complete signup response for debugging
+      console.log('Complete signup response:', {
+        user: signUpData?.user,
+        session: signUpData?.session,
+        error: signUpError
+      });
       
       // If we didn't return early (user wasn't created or callback failed)
       setSuccess('Account created successfully! You can now sign in.');
@@ -235,12 +315,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         message: err.message,
         status: err.status,
         name: err.name,
-        stack: err.stack
+        code: err.code,
+        details: err.details
       });
       
       // Set a more user-friendly error message
       if (err.message?.toLowerCase().includes('passwords do not match')) {
         setError('Passwords do not match');
+      } else if (err.message?.toLowerCase().includes('user already registered') || err.message?.toLowerCase().includes('user already exists')) {
+        setError('This email is already registered. Please sign in or use a different email.');
+      } else if (err.message?.toLowerCase().includes('signup is disabled')) {
+        setError('New user registration is currently disabled. Please contact support.');
       } else if (err.message?.toLowerCase().includes('phone')) {
         setError('Please enter a valid phone number');
       } else if (err.message?.toLowerCase().includes('email')) {
@@ -249,8 +334,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         setError('Password must be at least 8 characters long');
       } else if (err.message?.toLowerCase().includes('rate limit')) {
         setError('Too many signup attempts. Please try again later.');
+      } else if (err.message?.toLowerCase().includes('profile creation failed')) {
+        setError('Account creation failed. Please try again or contact support.');
+      } else if (err.code === '23503') {
+        setError('Authentication system error. Please try again.');
+      } else if (err.code === '23505') {
+        setError('An account with this email already exists. Please sign in instead.');
       } else {
-        setError('An error occurred during sign up. Please try again.');
+        setError(`Sign up failed: ${err.message || 'Please try again or contact support.'}`);
       }
     } finally {
       setLoading(false);

@@ -96,6 +96,16 @@ export function MobileMenu({
           </button>
         )}
         
+        {/* Error Role Display */}
+        {userRole === 'Error' && (
+          <div className="flex items-center p-4 bg-red-900/20 rounded-xl border border-red-900/30 mb-6">
+            <div className="bg-red-900/30 p-2 rounded-full mr-3">
+              <AlertTriangle size={20} className="text-red-400" />
+            </div>
+            <span className="text-red-400 font-medium">Role Error - Contact Support</span>
+          </div>
+        )}
+        
         {/* Account Actions */}
         {user ? (
           <div className="mt-auto space-y-3">
