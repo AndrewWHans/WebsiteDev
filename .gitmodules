@@ -1,0 +1,3 @@
+[submodule "bolt-core"]
+	path = bolt-core
+	url = https://github.com/stackblitz-labs/bolt.diy.git
