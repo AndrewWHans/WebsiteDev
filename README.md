@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ulimo Website
 
 Our company website
@@ -81,3 +82,6 @@ Our company website
 
 ## 📞 Support
 For issues, open an issue on GitHub or contact the maintainer.
+=======
+
+>>>>>>> 59347f675ea62b1738875bd31471e41b54b48f40
